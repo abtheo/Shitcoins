@@ -1,0 +1,2 @@
+# Shitcoins
+To the Moon! 🚀🚀
