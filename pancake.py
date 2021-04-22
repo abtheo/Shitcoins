@@ -12,6 +12,6 @@ TO_BOX = False
 #Assume we are in browser focus on Pancakeswap Exchange tab
 if __name__ == '__main__':
     sleep(5)
-    # print(get_balance(FROM_BOX), get_balance(TO_BOX))
-    set_token_address(FROM_BOX, "Binance")
-    set_token_value(1000, FROM_BOX)
+    print(get_balance(FROM_BOX), get_balance(TO_BOX))
+    # set_token_address(FROM_BOX, "Binance")
+    # set_token_value(1000, FROM_BOX)
