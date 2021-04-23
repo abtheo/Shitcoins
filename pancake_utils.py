@@ -7,7 +7,7 @@ def copy_to_clipboard(all=True):
     """Copy the current selection to the clipboard
     
         Params:
-            [boolean] all: True to select all first (Ctrl+A)
+            all [boolean]: True to select all first (Ctrl+A)
     """
     gui.keyDown("ctrl")
     if all:
@@ -28,7 +28,7 @@ def get_balance(from_box):
     by copying the correct box on Pancakeswap
     
         Params:
-            [boolean] from_box: 
+            from_box [boolean]: 
                 -True to select From balance,
                 -False to select To balance
     """
@@ -51,10 +51,10 @@ def set_token_value(from_box, value):
 def set_token_address(from_box, address):
     """Sets the token address in the correct box on Pancakeswap
         Params:
-            [boolean] from_box: 
+            from_box [boolean]: 
                 -True to select From balance,
                 -False to select To balance
-            [string] address:
+            address [string]:
                 - 'Binance' - BNB coin
                 - Else: Valid token address
     """
