@@ -1,2 +1,4 @@
 .venv
 blockchain/node_modules
+blockchain/config.json
+blockchain/chainlink-mix
