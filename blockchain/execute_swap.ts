@@ -21,19 +21,13 @@ function financialMfil(numMfil : any) {
 const main = async () => {
     // This code was written and tested using web3 version 1.0.0-beta.29
     console.log(`web3 version: ${web3.version}`)
-
-    // Who are we trying to send this token to?
-    var destAddress = "0xE3A029F6cA0C32a9E6c9a2154790Ea0A92cb2621";
     
-    var transferAmount = 1;
     // Determine the nonce
     var count = await web3.eth.getTransactionCount(account.address);
     console.log(`num transactions so far: ${count}`);
     
-    // Function: swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline)
-
     // Pancakeswap Router Address
-    var contractAddress = "0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F";
+    var contractAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
     var contract = new web3.eth.Contract(pancakeswap_abi, contractAddress, {
         from: account.address
 
@@ -41,23 +35,52 @@ const main = async () => {
     // How many tokens do I have before sending?
     var balance = await web3.eth.getBalance(account.address);
 
-    console.log(`Balance before send: ${balance}Gwei BNB\n------------------------`);
+    console.log(`Balance before send: ${balance} Gwei BNB\n------------------------`);
     // Use Gwei for the unit of gas price
     var gasPriceGwei = 5;
     var gasLimit = 3000000;
     // // Chain ID of Binance Smart Chain mainnet
     var chainId = 56;
-    // var rawTransaction = {
-    //     "from": account.address,
-    //     "nonce": "0x" + count.toString(16),
-    //     "gasPrice": web3.utils.toHex(gasPriceGwei * 1e9),
-    //     "gasLimit": web3.utils.toHex(gasLimit),
-    //     "to": contractAddress,
-    //     "value": "0x0",
-    //     "data": contract.methods.transfer(destAddress, transferAmount).encodeABI(),
-    //     "chainId": chainId
-    // };
-    // console.log(`Raw of Transaction: \n${JSON.stringify(rawTransaction, null, '\t')}\n------------------------`);
+
+    //Construct ABI data ---
+    //Swapping BNB for Cosmos(ATOM)
+    // Function: swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline)
+    // #	Name	        Type	    Data
+    // 0	amountOutMin	uint256	    213549452714469248
+    // 1	path	        address[]   [bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c, == BNB Token Address
+    //                                   0eb3a705fc54725037cc9e008bdede697f62f335] == ATOM Token Address
+    // 2	to	address	dac3a1b1e64ac9fd73e70fd7887d57d745de795b
+    // 3	deadline	uint256	1619471962
+    
+    const fromToken = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; //== BNB Token Address
+    const toToken = "0x0eb3a705fc54725037cc9e008bdede697f62f335"; //== ATOM Token Address
+
+    const transferAmount = web3.utils.toWei("0.01"); //Swap 0.01BNB
+
+    //Find the expected output amount of the destination token
+    const amountsOut = await contract.methods.getAmountsOut(transferAmount, [fromToken, toToken]).call(); 
+    const SLIPPAGE_MAX = 5;
+    const amountOutMin = web3.utils.toBN(amountsOut[1]).mul(web3.utils.toBN(100 - SLIPPAGE_MAX)).div(web3.utils.toBN(100));
+    console.log(`Swapping ${web3.utils.fromWei(transferAmount)} BNB for ATOM`)
+    console.log(`Minimum tokens recieved: ${web3.utils.fromWei(amountOutMin.toString())} ATOM`);
+
+    //Arbitrary deadline, can tighten to reject txs if we fail to front-run?
+    const minutesDeadline = 5;
+    var deadline = new Date( Date.now() + 1000 * (60 * minutesDeadline) ).valueOf() //5 minute deadline
+    const swap_abi = contract.methods.swapExactETHForTokens(transferAmount, [fromToken, toToken], account.address, deadline).encodeABI();
+
+    //Fill in ABI & remaining transaction details
+    var rawTransaction = {
+        "from": account.address,
+        "nonce": "0x" + count.toString(16),
+        "gasPrice": web3.utils.toHex(gasPriceGwei * 1e9),
+        "gasLimit": web3.utils.toHex(gasLimit),
+        "to": contractAddress,
+        "value": "0x0",
+        "data": swap_abi,
+        "chainId": chainId
+    };
+    console.log(`Raw of Transaction: \n${JSON.stringify(rawTransaction, null, '\t')}\n------------------------`);
     // // The private key for myAddress in .env
     // var privKey = new Buffer(config.PRIVATE_KEY, 'hex');
     // var tx = new Tx(rawTransaction);
@@ -71,5 +94,6 @@ const main = async () => {
     // // The balance may not be updated yet, but let's check
     // balance = await contract.methods.balanceOf(account.address).call();
     // console.log(`Balance after send: ${financialMfil(balance)} MFIL`);
+    return;
 }
 main();
