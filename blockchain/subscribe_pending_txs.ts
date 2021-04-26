@@ -1,7 +1,5 @@
-const Web3 = require('web3');
-
 //Connect to BSC node
-const web3 = new Web3('wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/');
+// const web3 = new Web3('wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/');
 
 async function subscribeToPendingEvents() {
     var subscription = web3.eth.subscribe('pendingTransactions', function(error, result){
