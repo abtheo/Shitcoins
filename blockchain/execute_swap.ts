@@ -39,18 +39,14 @@ const main = async () => {
 
     });
     // How many tokens do I have before sending?
-    // var balance = await contract.methods.balanceOf(account.address).call();
-    var balance = await web3.eth.getBalance(account.address); //Will give value in.
-    // balance = web3.hexToBytes(balance);
-
+    var balance = await web3.eth.getBalance(account.address);
 
     console.log(`Balance before send: ${balance}Gwei BNB\n------------------------`);
-    // I chose gas price and gas limit based on what ethereum wallet was recommending for a similar transaction. You may need to change the gas price!
     // Use Gwei for the unit of gas price
-    // var gasPriceGwei = 5;
-    // var gasLimit = 3000000;
+    var gasPriceGwei = 5;
+    var gasLimit = 3000000;
     // // Chain ID of Binance Smart Chain mainnet
-    // var chainId = 57;
+    var chainId = 56;
     // var rawTransaction = {
     //     "from": account.address,
     //     "nonce": "0x" + count.toString(16),
