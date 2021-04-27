@@ -74,9 +74,6 @@ def extract_selftext_info(selftext):
     pancake_address = address_from_url(pancake, "outputCurrency=")
     poocoin_address = address_from_url(poocoin, "tokens/")
 
-    print("PancakeAddress: ", pancake_address)
-    print("PoocoinAddress: ", poocoin_address)
-
     if not (pancake_address or poocoin_address):
         return False
 
@@ -151,7 +148,7 @@ def parse_json_fields(request):
     } for data in request]
 
 
-def scrape_subreddits(time="60s", size=5):
+def scrape_subreddits(time="120s", size=5):
     url = r"https://api.pushshift.io/reddit/submission/search/?" + \
         r"&sort_type=score" + \
         f"&after={time}" + \
@@ -159,7 +156,7 @@ def scrape_subreddits(time="60s", size=5):
         f"&size={size}"
 
     subreddits = ["CryptoMoonshots", "CryptoMarsShots", "AllCryptoBets", "Cryptostreetbets",
-                  "cryptomooncalls", "Cryptopumping"]
+                  "cryptomooncalls", "Cryptopumping", "SatoshiStreetBets"]
 
     token_whitelist = UniqueQueue(maxsize=10)
     token_blacklist = UniqueQueue(maxsize=50)
@@ -192,10 +189,12 @@ def scrape_subreddits(time="60s", size=5):
             df[col] = ""
 
         # Iterate each post
+        removed = []
         for post in range(len(df)):
             selftext = str(df["selftext"].iloc[post])
             # Skip removed posts
             if "removed" in selftext:
+                removed.append(post)
                 continue
 
             print(f"Extracting info from post {df.iloc[post]['id']}")
@@ -219,6 +218,7 @@ def scrape_subreddits(time="60s", size=5):
             update_row_with_dict(df, token_info, post)
 
         if len(df) > 0:
+            df.drop(removed, inplace=True)
             all_posts.append(df)
 
     if len(all_posts) > 0:
@@ -231,7 +231,7 @@ def get_post_comments(submission_id):
     # Do a direct request to reddit instead
 
     url = r"https://api.pushshift.io/reddit/submission/comment_ids/" + \
-        str(submission_id)
+        submission_id[1]
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
         print(f"Bad request, skipping {url}")
@@ -251,10 +251,11 @@ def track_asset(asset_id, resolution=60):
 
 # track_asset("mx718g")
 tokens_df = scrape_subreddits()
-tkn = tokens_df.iloc[0]
-print(tkn)
-# print(tkn.id)
-print("ID: ", tkn["id"])
-print("URL: ", tkn["full_link"])
+# print(tokens_df)
 
-track_asset(tkn["id"])
+
+# # print(tkn.id)
+# print("ID: ", tkn["id"])
+# print("URL: ", tkn["full_link"])
+for i, tkn in tokens_df.iterrows():
+    track_asset(tkn["id"])
