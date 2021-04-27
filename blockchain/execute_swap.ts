@@ -2,16 +2,15 @@
 const config = require('./config.json');
 const pancakeswap_abi = require('./pancakeswap_abi.json');
 const Web3 = require('web3');
-
-const Tx = require('ethereumjs-tx');
-
+const Transaction = require('@ethereumjs/tx').Transaction;
+import Common from '@ethereumjs/common';
 //Connect to BSC node
 const web3 = new Web3('wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/');
 
 //Read wallet private key
-const account = web3.eth.accounts.privateKeyToAccount(config.PRIVATE_KEY)
-
+const account = web3.eth.accounts.privateKeyToAccount(config.PRIVATE_KEY);
 console.log(account);
+
 // Fixed-point notation for number of MFIL which is divisible to 3 decimal places
 function financialMfil(numMfil : any) {
     return (Number.parseFloat(numMfil) / 1000).toFixed(3);
@@ -34,13 +33,7 @@ const main = async () => {
     });
     // How many tokens do I have before sending?
     var balance = await web3.eth.getBalance(account.address);
-
     console.log(`Balance before send: ${balance} Gwei BNB\n------------------------`);
-    // Use Gwei for the unit of gas price
-    var gasPriceGwei = 5;
-    var gasLimit = 3000000;
-    // // Chain ID of Binance Smart Chain mainnet
-    var chainId = 56;
 
     //Construct ABI data ---
     //Swapping BNB for Cosmos(ATOM)
@@ -67,7 +60,13 @@ const main = async () => {
     //Arbitrary deadline, can tighten to reject txs if we fail to front-run?
     const minutesDeadline = 5;
     var deadline = new Date( Date.now() + 1000 * (60 * minutesDeadline) ).valueOf() //5 minute deadline
-    const swap_abi = contract.methods.swapExactETHForTokens(transferAmount, [fromToken, toToken], account.address, deadline).encodeABI();
+    const swap_abi = contract.methods.swapExactETHForTokens(amountOutMin, [fromToken, toToken], account.address, deadline).encodeABI();
+
+    // Use Gwei for the unit of gas price
+    var gasPriceGwei = 5;
+    var gasLimit = 3000000;
+    // // Chain ID of Binance Smart Chain mainnet
+    var chainId = "0x38";
 
     //Fill in ABI & remaining transaction details
     var rawTransaction = {
@@ -76,24 +75,25 @@ const main = async () => {
         "gasPrice": web3.utils.toHex(gasPriceGwei * 1e9),
         "gasLimit": web3.utils.toHex(gasLimit),
         "to": contractAddress,
-        "value": "0x0",
         "data": swap_abi,
-        "chainId": chainId
+        "chainId": chainId,
+        "value" : web3.utils.toHex(transferAmount)
     };
     console.log(`Raw of Transaction: \n${JSON.stringify(rawTransaction, null, '\t')}\n------------------------`);
-    // // The private key for myAddress in .env
-    // var privKey = new Buffer(config.PRIVATE_KEY, 'hex');
-    // var tx = new Tx(rawTransaction);
-    // tx.sign(privKey);
-    // var serializedTx = tx.serialize();
-    // // Comment out these four lines if you don't really want to send the TX right now
-    // console.log(`Attempting to send signed tx:  ${serializedTx.toString('hex')}\n------------------------`);
-    // var receipt = await web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'));
-    // // The receipt info of transaction, Uncomment for debug
+    var signedTx = await web3.eth.accounts.signTransaction(rawTransaction, config.PRIVATE_KEY);
+    console.log(signedTx);
+
+    /*
+    DANGER -- ACTUALLY EXECUTE THE SWAP
+    */
+
+    // var receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    // The receipt info of transaction, Uncomment for debug
     // console.log(`Receipt info: \n${JSON.stringify(receipt, null, '\t')}\n------------------------`);
+
     // // The balance may not be updated yet, but let's check
-    // balance = await contract.methods.balanceOf(account.address).call();
-    // console.log(`Balance after send: ${financialMfil(balance)} MFIL`);
+    var balance = await web3.eth.getBalance(account.address);
+    console.log(`Balance after send: ${balance} Gwei BNB\n------------------------`);
     return;
 }
 main();

@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/abtheo/Shitcoins#readme",
   "dependencies": {
+    "@ethereumjs/common": "^2.2.0",
+    "@ethereumjs/tx": "^3.1.4",
     "@metamask/detect-provider": "^1.2.0",
     "bnc-sdk": "^3.3.1",
     "ganache-cli": "^6.12.2",
