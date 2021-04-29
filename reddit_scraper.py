@@ -93,7 +93,7 @@ def extract_selftext_info(selftext):
     # Check number of BSCScan URLS linked
     df["bscscan_count"] = sum(
         [1 if "bscscan" in url else 0 for url in url_matches])
-
+    print(df)
     return df
 
 
