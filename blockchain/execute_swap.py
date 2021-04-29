@@ -14,7 +14,7 @@ with open('./pancakeswap_abi.json') as f:
     pancakeswap_abi = json.load(f)
 
 # Connect to BSC node
-web3 = Web3(Web3.WebsocketProvider(
+w3 = Web3(Web3.WebsocketProvider(
     'wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/'))
 
 # Read wallet private key
@@ -22,15 +22,15 @@ account = Account.from_key(config["PRIVATE_KEY"])
 print(account)
 
 # Determine the nonce
-count = web3.eth.getTransactionCount(account.address)
+count = w3.eth.getTransactionCount(account.address)
 print("Nonce: ", count)
 
 # Pancakeswap Router Address
 contractAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
-contract = web3.eth.contract(address=contractAddress, abi=pancakeswap_abi)
+contract = w3.eth.contract(address=contractAddress, abi=pancakeswap_abi)
 
 # How many tokens do I have before sending?
-balance = web3.eth.getBalance(account.address)
+balance = w3.eth.getBalance(account.address)
 print(f"Balance before send: {balance} Gwei BNB\n------------------------")
 
 # Construct ABI data ---
@@ -77,7 +77,7 @@ chainId = "0x38"
 # Fill in ABI & remaining transaction details
 rawTransaction = {
     "from": account.address,
-    "nonce": web3.toHex(count),
+    "nonce": w3.toHex(count),
     "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
     "gas": Web3.toHex(gasLimit),
     "to": contractAddress,
@@ -86,20 +86,20 @@ rawTransaction = {
     "value": Web3.toHex(transferAmount)
 }
 print(f"Raw of Transaction: \n${rawTransaction}\n------------------------")
-signedTx = web3.eth.account.sign_transaction(
+signedTx = w3.eth.account.sign_transaction(
     rawTransaction, config["PRIVATE_KEY"])
 print(signedTx)
 
 """
     <DANGER -- ACTUALLY EXECUTE THE SWAP>
 """
-# deploy_txn = web3.eth.send_raw_transaction(signedTx.rawTransaction)
+# deploy_txn = w3.eth.send_raw_transaction(signedTx.rawTransaction)
 """
     </DANGER>
 """
-txn_receipt = web3.eth.wait_for_transaction_receipt(deploy_txn)
+txn_receipt = w3.eth.wait_for_transaction_receipt(deploy_txn)
 print(txn_receipt)
 
 # The balance may not be updated yet, but let's check
-balance = web3.eth.getBalance(account.address)
+balance = w3.eth.getBalance(account.address)
 print(f"Balance after send: {balance} Gwei BNB\n------------------------")
