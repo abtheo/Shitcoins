@@ -35,8 +35,9 @@ block_filter = w3.eth.filter('pending')
 # block_filter = contract.events.removeLiquidityETHWithPermit.createFilter(
 #     fromBlock='pending')
 
-for i in range(200):
+for i in range(20):
     pending_tx_hashes = block_filter.get_new_entries()
+    print(pending_tx_hashes)
 
     transactions = [try_get_tx(h) for h in pending_tx_hashes]
 
