@@ -10,10 +10,9 @@ import re
 from bs4 import BeautifulSoup
 import pandas as pd
 
-
 # Initialise Chrome WebDriver
 chrome_options = ChromeOptions()
-# chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless")
 chrome_options.add_argument("--window-size=1920x1080")
 chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 chrome_driver = "./chromedriver_win.exe"
@@ -35,6 +34,7 @@ try:
 except TimeoutException:
     print("Loading took too much time!")
 
+sleep(0.5)
 # Extract number of token holders
 transactions = driver.find_element_by_id("totaltxns").text
 num_transactions = int(re.sub("[^0-9]", "", transactions))
@@ -46,40 +46,29 @@ num_holders = int(re.sub("[^0-9]", "", holders))
 print(f"Number of token holders: {num_holders}")
 
 # Focus TX table
-WebDriverWait(driver, 3).until(EC.frame_to_be_available_and_switch_to_it(
+WebDriverWait(driver, 5).until(EC.frame_to_be_available_and_switch_to_it(
     (By.XPATH, "//*[@id='tokentxnsiframe']")))
+
+# Switch DateTime format
+driver.find_element_by_xpath(
+    "//*[@id='lnkTokenTxnsAgeDateTime']").click()
 
 # Select Last Page of TXs
 driver.find_element_by_xpath(
     "//*[@id='maindiv']/div[1]/nav/ul/li[5]/a/span[1]").click()
 
-
 # Parse raw HTML with BeautifulSoup
 soup = BeautifulSoup(driver.page_source, features="html.parser")
 
-
 # Scrape HTML table
-Transfers_info_table_1 = soup.find(
+table_data = soup.find(
     "table", {"class": "table table-md-text-normal table-hover mb-4"})
-df = pd.read_html(str(Transfers_info_table_1))[0]
+df = pd.read_html(str(table_data))[0]
 df.dropna(axis=1, how='all', inplace=True)
+df["Date Time (UTC)"] = pd.to_datetime(df["Date Time (UTC)"])
 print(df)
 
-# # data = []
-# table = soup.find('table', attrs={'class': 'table'})
-# print(table)
-# table_body = table.find('tbody')
-
-# rows = table_body.find_all('tr')
-# for row in rows:
-#     cols = row.find_all('td')
-#     cols = [ele.text.strip() for ele in cols]
-#     data.append([ele for ele in cols if ele])
-
-# print(data)
-
-# Download table data
+earliest_tx = df["Date Time (UTC)"].min()
 
 
-sleep(5)
 driver.close()
