@@ -29,18 +29,15 @@ try:
 except TimeoutException:
     print("Loading took too much time!")
 
-# coinInfo = driver.find_element_by_class_name("px-3").get_attribute('href')
+
 v1_lp_holders = driver.find_element_by_xpath(
-    "//*[@id='root']/div/div[1]/div[2]/div/div[1]/div[2]/small/a[2]")
+    "//*[@id='root']/div/div[1]/div[2]/div/div[1]/div[2]/small/a[2]").get_attribute('href')
 
 v2_lp_holders = driver.find_element_by_xpath(
+    "//*[@id='root']/div/div[1]/div[2]/div/div[1]/div[2]/small/a[4]"
+).get_attribute('href')
 
-)
+print(v1_lp_holders, v2_lp_holders)
 
-print(dir(coinInfo))
 
-# marketCap = coinInfo.text.split(":")
-# marketCap = marketCap[1]
-# print(coinInfo.text)
-# print(marketCap)
 driver.close()
