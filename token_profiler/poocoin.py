@@ -8,13 +8,12 @@ from selenium.webdriver.common.by import By
 import os
 
 
-def query_poocoin():
+def query_poocoin(address):
     chrome_options = ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1920x1080")
 
-    url = 'https://poocoin.app/tokens/' + \
-        '0xb27adaffb9fea1801459a1a81b17218288c097cc'
+    url = 'https://poocoin.app/tokens/' + address
 
     chrome_driver = "token_profiler/chromedriver_win.exe"
 
