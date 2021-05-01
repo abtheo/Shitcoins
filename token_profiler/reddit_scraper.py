@@ -249,12 +249,10 @@ def track_asset(asset_id, resolution=60):
 # get_post_comments(submission_id)
 
 # track_asset("mx718g")
-tokens_df = scrape_subreddits()
+# tokens_df = scrape_subreddits()
 # print(tokens_df)
 
 
 # # print(tkn.id)
 # print("ID: ", tkn["id"])
 # print("URL: ", tkn["full_link"])
-for i, tkn in tokens_df.iterrows():
-    track_asset(tkn["id"])
