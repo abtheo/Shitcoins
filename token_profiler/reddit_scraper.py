@@ -229,7 +229,6 @@ def scrape_subreddits(time="120s", size=5):
 def get_post_comments(submission_id):
     # Fuckin' sucks
     # Do a direct request to reddit instead
-
     url = r"https://api.pushshift.io/reddit/submission/comment_ids/" + \
         submission_id[1]
     r = requests.get(url)

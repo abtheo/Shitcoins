@@ -31,7 +31,7 @@ class Trader:
             "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
         self.gasLimit = 4000000
 
-    def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=5, max_slippage=5, minutesDeadline=5, actually_send_trade=False, verbose=False):
+    def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, verbose=False):
         # Convert BNB to BNB-Wei
         transferAmount = Web3.toWei(transferAmountInBNB, "ether")
         # Ensure address is properly formatted
@@ -101,7 +101,7 @@ class Trader:
 
         return txn_receipt
 
-    def swapExactTokensForETH(fromTokenAddress, transferAmountPercentage=1.0, minutesDeadline=5, max_slippage=5, actually_send_trade=False):
+    def swapExactTokensForETH(fromTokenAddress, gasPriceGwei=8, transferAmountPercentage=1.0, minutesDeadline=5, max_slippage=5, actually_send_trade=False):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(fromToken)
 
