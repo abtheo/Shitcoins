@@ -44,7 +44,18 @@ class Shitcoin(threading.Thread):
         self.bnb += shitcoin * currentPrice()
         print(self.contract + ": Sold " + self.shitcoin + " for " + currentPrice())
 
+    def rugcheck(self):
+        if not self.sellExists:
+            return 1
+
+        # TODO: Figure out how likely it is to be a rugpull
+        # pilot transaction
+        # LP distirbution
+        # What does tokensniffer say
+
     def earlyEntryStrategy(self):
+
+
         entryPrice = currentPrice()
         buy(min(0.05, bnb))
         while (True):
@@ -63,6 +74,7 @@ class Shitcoin(threading.Thread):
             return
         earlyEntryStrategy()
 
+
 # Class for overseeing the trading of shitcoins, and
 class Tracker:
     def __init__(self):
@@ -72,7 +84,7 @@ class Tracker:
 
     def track(self, trading_mode=True):
         while(True):
-            redditTokens = reddit_scraper.scrape_subreddits(time="400s")
+            redditTokens = reddit_scraper.scrape_subreddits(time="11000s")
             print(redditTokens)
             try:
                 addresses = [a for a in redditTokens["address"] if a != '']
@@ -97,5 +109,7 @@ class Tracker:
         #print("Profiling MoonCunt:")
         #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
 
-t = Tracker()
-t.track(trading_mode = False)
+#t = Tracker()
+#t.track(trading_mode = False)
+
+reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots'], verbose=True)

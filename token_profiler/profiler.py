@@ -197,6 +197,7 @@ class Profiler:
         profile.update(v1_lp_holders)
         profile.update(v2_lp_holders)
         profile['stats'] = bscscan_stats
+
         return profile
 
 if __name__ == "__main__":

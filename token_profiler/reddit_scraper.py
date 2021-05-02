@@ -124,14 +124,15 @@ def parse_json_fields(request):
     } for data in request]
 
 
-def scrape_subreddits(time="120s", size=5, verbose=False):
+def scrape_subreddits(time="120s", size=5, verbose=False, subreddits=[]):
     url = r"https://api.pushshift.io/reddit/submission/search/?" + \
         r"&sort_type=score" + \
         f"&after={time}" + \
         r"&sort=desc" + \
         f"&size={size}"
 
-    subreddits = ["CryptoMoonshots", "CryptoMarsShots", "AllCryptoBets", "Cryptostreetbets",
+    if subreddits == []:
+        subreddits = ["CryptoMoonshots", "CryptoMarsShots", "AllCryptoBets", "Cryptostreetbets",
                   "cryptomooncalls", "Cryptopumping", "SatoshiStreetBets"]
 
     all_posts = []
@@ -146,6 +147,7 @@ def scrape_subreddits(time="120s", size=5, verbose=False):
             continue
         # Parse response as JSON
         j_data = json.loads(r.text)
+        if(verbose): print(j_data)
         data = parse_json_fields(j_data["data"])
 
         # Drop empty data
