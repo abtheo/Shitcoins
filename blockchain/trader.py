@@ -197,14 +197,21 @@ class Trader:
             return Web3.fromWei(amountsOut, 'ether')
         return amountsOut
     
-    def get_bnb_balance(self):
-        return self.w3.eth.getBalance(self.account.address)
+    def get_bnb_balance(self,convertToBNB=True):
+        balance = self.w3.eth.getBalance(self.account.address)
+        if convertToBNB:
+            return Web3.fromWei(balance, 'ether')
+        return balance
 
-    def get_shitcoin_balance(self,shitcoinAddress):
+    def get_shitcoin_balance(self,shitcoinAddress,convertToBNB=True):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(shitcoinAddress)
-        
+
         balance_check_contract = self.w3.eth.contract(
             address=fromToken, abi=self.balance_check_abi)
 
-        return balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
+        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
+        
+        if convertToBNB:
+            return Web3.fromWei(balance, 'ether')
+        return balance
