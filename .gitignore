@@ -3,4 +3,15 @@ blockchain/node_modules
 blockchain/config.json
 blockchain/chainlink-mix
 
+# Local .terraform directories (created via 'terraform init')
+*.terraform*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
 __pycache__
+
