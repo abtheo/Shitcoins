@@ -16,6 +16,8 @@ class Trader:
             self.config = json.load(f)
         with open(pancakeABI) as f:
             self.pancakeswap_abi = json.load(f)
+        
+        self.balance_check_abi = json.loads('[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"}]')
 
         # Connect to BSC node
         self.w3 = Web3(Web3.WebsocketProvider(
@@ -116,10 +118,8 @@ class Trader:
             print("Nonce: ", count)
 
         # Get fromToken balance
-        balance_check_abi = json.loads('[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"}]')
-
         balance_check_contract = self.w3.eth.contract(
-            address=fromToken, abi=balance_check_abi)
+            address=fromToken, abi=self.balance_check_abi)
 
         balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
 
@@ -185,3 +185,23 @@ class Trader:
         """
 
         return txn_receipt
+
+    def get_shitcoin_price_in_bnb(self, shitcoinAddress, convertToBNB=True):
+        # Ensure address is properly formatted
+        fromToken = Web3.toChecksumAddress(shitcoinAddress)
+        # Find the expected output amount of the destination token
+        amountsOut = self.pancake_contract.functions.getAmountsOut(
+            transferAmount, [fromToken, self.bnb_address]).call()
+
+        if convertToBNB:
+            return Web3.fromWei(amountsOut, 'ether')
+        return amountsOut
+    
+    def get_bnb_balance(self):
+        return self.w3.eth.getBalance(self.account.address)
+
+    def get_shitcoin_balance(self,shitcoinAddress):
+        balance_check_contract = self.w3.eth.contract(
+            address=fromToken, abi=self.balance_check_abi)
+
+        return balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
