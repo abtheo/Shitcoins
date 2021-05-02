@@ -25,6 +25,7 @@ class Shitcoin(threading.Thread):
         self.earliest_tx = stats['age'].to_pydatetime()
         self.dateSeen = datetime.now()
         self.bnb = bnb
+        self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
         self.trader.getCurrentPrice(self.contract)
@@ -47,25 +48,36 @@ class Shitcoin(threading.Thread):
     def rugcheck(self):
         if not self.sellExists:
             return 1
-
-        # TODO: Figure out how likely it is to be a rugpull
-        # pilot transaction
+        if self.token_sniffer = "SCAM":
+            return 1
+        if self.token_sniffer = "OKAY":
+            return 0
+        if self.token_sniffer = "404":
+            return 0.5
+        # TODO: LP distribution
         # LP distirbution
-        # What does tokensniffer say
 
     def earlyEntryStrategy(self):
-
-
         entryPrice = currentPrice()
+        peakPrice = entryPrice
+        targetMultiplier = 2
+        lastTarget = entryPrice
         buy(min(0.05, bnb))
+
         while (True):
             price = currentPrice()
-            if (price < 0.6 * entryPrice) or (price > 3  * entryPrice):
-                break
-            time.sleep(5)
+            peakPrice = max(price, peakPrice)
 
-        sell(self.shitcoin)
-        printBalance()
+            # If it drops 40% from the all-time high, sell all
+            if (price < 0.6 * peakPrice):
+                sell(self.shitcoin)
+                return
+
+            # Sell 25% of holdings each time price goes up by another multiple
+            if (price > lastTarget * targetMultiplier):
+                sell(0.25*self.shitcoin)
+                lastTarget = lastTarget * targetMultiplier
+            time.sleep(2)
 
     def run(self):
         if not self.sellExists:
@@ -112,4 +124,4 @@ class Tracker:
 #t = Tracker()
 #t.track(trading_mode = False)
 
-reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots'], verbose=True)
+print(reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots']))

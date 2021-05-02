@@ -221,5 +221,5 @@ def track_asset(asset_id, resolution=60):
         sleep(60)
 
 
-df = scrape_subreddits(verbose=True)
-print(df)
+#df = scrape_subreddits(verbose=True)
+#print(df)

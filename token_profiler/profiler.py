@@ -42,7 +42,7 @@ class Profiler:
         if "This page could not be found" in self.driver.page_source:
             return "404"
         return "OKAY"
-        
+
 
     def query_poocoin(self,address):
         #Direct driver to Poocoin URL
@@ -155,7 +155,7 @@ class Profiler:
             "table", {"class": "table table-md-text-normal table-hover"})
         df = pd.read_html(str(table_data))[0]
         df.dropna(axis=1, how='all', inplace=True)
-     
+
         # Boolean for IsContractAddress, indicated by the icon on BSCscan
         df["is_contract_address"] = False
         df.loc[contract_rows, "is_contract_address"] = True
@@ -235,7 +235,7 @@ class Profiler:
         profile.update(v1_lp_holders)
         profile.update(v2_lp_holders)
         profile['stats'] = bscscan_stats
-
+        profile['token_sniffer'] = query_token_sniffer(address)
         return profile
 
 if __name__ == "__main__":
