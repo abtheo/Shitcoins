@@ -217,3 +217,7 @@ def track_asset(asset_id, resolution=60):
     while True:
         print(get_post_comments(asset_id))
         sleep(60)
+
+
+df = scrape_subreddits(verbose=True)
+print(df)
