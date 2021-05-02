@@ -2,6 +2,7 @@ from web3 import Web3
 from eth_account import Account
 import json
 import datetime
+from time import sleep
 import os
 
 class Trader:
@@ -26,7 +27,7 @@ class Trader:
             address=self.pancakeswapAddress, abi=self.pancakeswap_abi)
 
         # Read wallet private key
-        self.account = Account.from_key(config["PRIVATE_KEY"])
+        self.account = Account.from_key(self.config["PRIVATE_KEY"])
 
         # Chain ID of Binance Smart Chain mainnet
         self.chainId = "0x38"
@@ -105,9 +106,9 @@ class Trader:
 
         return txn_receipt
 
-    def swapExactTokensForETH(fromTokenAddress, gasPriceGwei=8, transferAmountPercentage=1.0, minutesDeadline=5, max_slippage=5, actually_send_trade=False):
+    def swapExactTokensForETH(self,fromTokenAddress, gasPriceGwei=8, transferAmountPercentage=1.0, minutesDeadline=5, max_slippage=5, verbose=False,actually_send_trade=False):
         # Ensure address is properly formatted
-        fromToken = Web3.toChecksumAddress(fromToken)
+        fromToken = Web3.toChecksumAddress(fromTokenAddress)
 
         # Determine the nonce
         count = self.w3.eth.getTransactionCount(self.account.address)
@@ -115,36 +116,19 @@ class Trader:
             print("Nonce: ", count)
 
         # Get fromToken balance
-        balance_check_abi = [{
-            "constant": true,
-            "inputs": [
-                {
-                    "name": "_owner",
-                    "type": "address"
-                }
-            ],
-            "name": "balanceOf",
-            "outputs": [
-                {
-                    "name": "balance",
-                    "type": "uint256"
-                }
-            ],
-            "payable": false,
-            "type": "function"
-        }]
+        balance_check_abi = json.loads('[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"}]')
 
         balance_check_contract = self.w3.eth.contract(
             address=fromToken, abi=balance_check_abi)
 
-        balance = balance_check_contract.functions.balanceOf(fromToken).call()
+        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
 
         if verbose:
             print(
-                f"Balance before send: {balance} Gwei Shitcoin\n------------------------")
+                f"Balance before send: {balance} Wei Shitcoin\n------------------------")
 
         # Determine percentage of position to exit
-        transferAmount = transferAmountPercentage * balance
+        transferAmount = int(transferAmountPercentage * balance)
 
         if balance < transferAmount:
             raise Exception(
@@ -152,8 +136,11 @@ class Trader:
 
         # Find the expected output amount of the destination token
         amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [self.bnb_address, toToken]).call()
+            transferAmount, [fromToken, self.bnb_address]).call()
         amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
+        if verbose:
+            print(
+                f"Minimum amount out: {amountOutMin} Wei BNB\n------------------------")
 
         # Arbitrary deadline, can tighten to reject txs if we fail to front-run?
         deadline = datetime.datetime.now(
