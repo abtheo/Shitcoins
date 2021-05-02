@@ -36,11 +36,6 @@ class Trader:
             "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
         self.gasLimit = 4000000
 
-    def getCurrentPrice(toTokenAddress):
-        amountsOut = self.pancake_contract.functions.getAmountsOut(
-            1, [self.bnb_address, toToken]).call()
-        return 1 / amountsOut
-
     def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, verbose=False):
         # Convert BNB to BNB-Wei
         transferAmount = Web3.toWei(transferAmountInBNB, "ether")
