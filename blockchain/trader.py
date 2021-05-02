@@ -201,6 +201,9 @@ class Trader:
         return self.w3.eth.getBalance(self.account.address)
 
     def get_shitcoin_balance(self,shitcoinAddress):
+        # Ensure address is properly formatted
+        fromToken = Web3.toChecksumAddress(shitcoinAddress)
+        
         balance_check_contract = self.w3.eth.contract(
             address=fromToken, abi=self.balance_check_abi)
 
