@@ -1,5 +1,5 @@
 import token_profiler.reddit_scraper as reddit_scraper
-import token_profiler.bscscan as bscscan
+import token_profiler.profiler as profiler
 import blockchain.trader as Trading
 import pandas as pd
 import threading
@@ -40,4 +40,4 @@ class Tracker:
         for index, row in self.tokens.iterrows():
             print(index)
 
-bscscan.scan(1, "./chromedriver_win.exe")
+tokenProfiler = profiler.Profiler()
