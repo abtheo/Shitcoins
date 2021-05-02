@@ -96,30 +96,6 @@ def extract_selftext_info(selftext):
     print(df)
     return df
 
-
-class UniqueQueue(Queue):
-    def _init(self, maxsize):
-        self.all_items = set()
-        Queue._init(self, maxsize)
-
-    def _put(self, item):
-        if item not in self.all_items:
-            self.all_items.add(item)
-            Queue.put(self, item)
-
-    def _get(self):
-        item = Queue._get(self)
-        self.all_items.remove(item)
-        return item
-
-    def queue(self, arr):
-        for a in arr:
-            self._put(a)
-
-    def contains(self, other):
-        return other in self.all_items
-
-
 def try_get(d, idx):
     try:
         return d[idx]
@@ -157,9 +133,6 @@ def scrape_subreddits(time="120s", size=5):
 
     subreddits = ["CryptoMoonshots", "CryptoMarsShots", "AllCryptoBets", "Cryptostreetbets",
                   "cryptomooncalls", "Cryptopumping", "SatoshiStreetBets"]
-
-    token_whitelist = UniqueQueue(maxsize=10)
-    token_blacklist = UniqueQueue(maxsize=50)
 
     all_posts = []
     # SEARCH Loop - Query for new posts
@@ -217,12 +190,14 @@ def scrape_subreddits(time="120s", size=5):
             # Merge / Flatten extracted info back into Reddit df
             update_row_with_dict(df, token_info, post)
 
-        if len(df) > 0:
+        if not df.empty:
             df.drop(removed, inplace=True)
             all_posts.append(df)
 
     if len(all_posts) > 0:
-        return pd.concat(all_posts, axis=1).dropna(how='all', axis=0)
+        df_out = pd.concat(all_posts, axis=0).dropna(how='all', axis=0)
+        df_out.reset_index(inplace=True)
+        return df_out
     return df
 
 
@@ -245,6 +220,9 @@ def track_asset(asset_id, resolution=60):
         print(get_post_comments(asset_id))
         sleep(60)
 
+
+df = scrape_subreddits()
+print(df["address"])
 
 # get_post_comments(submission_id)
 
