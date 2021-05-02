@@ -95,12 +95,13 @@ class Profiler:
         num_holders = int(re.sub("[^0-9]", "", holders))
 
         # Focus TX table
-        WebDriverWait(self.driver, 5).until(EC.frame_to_be_available_and_switch_to_it(
+        WebDriverWait(self.driver, 15).until(EC.frame_to_be_available_and_switch_to_it(
             (By.XPATH, "//*[@id='tokentxnsiframe']")))
 
-        # Switch DateTime format
-        self.driver.find_element_by_xpath(
-            "//*[@id='lnkTokenTxnsAgeDateTime']").click()
+        age_col = self.driver.find_element_by_xpath("//*[@id='lnkTokenTxnsAgeDateTime']").text
+        if age_col == "Age":
+            # Switch DateTime format
+            age_elem = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='lnkTokenTxnsAgeDateTime']"))).click()
 
         # Select Last Page of TXs
         self.driver.find_element_by_xpath(
@@ -116,7 +117,7 @@ class Profiler:
         df.dropna(axis=1, how='all', inplace=True)
 
         #Get Age of token (first tx datetime)
-        print(df)
+        # print(df)
         df["Date Time (UTC)"] = pd.to_datetime(df["Date Time (UTC)"])
         earliest_tx = df["Date Time (UTC)"].min()
 
@@ -200,5 +201,5 @@ class Profiler:
 
 if __name__ == "__main__":
     with Profiler() as profiler:
-        address = "0x8c762ff4721326abc4771b784b8d54bca2af9ad3"
-        profiler.profile_token(address)
+        address = "0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331"
+        print(profiler.profile_token(address))
