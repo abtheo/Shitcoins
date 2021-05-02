@@ -211,8 +211,6 @@ def get_post_comments(submission_id):
         print(f"Bad request, skipping {url}")
 
     return r.text
-
-
 # TODO: Proper threading
 def track_asset(asset_id, resolution=60):
     starttime = datetime.now()
@@ -220,17 +218,3 @@ def track_asset(asset_id, resolution=60):
         print(get_post_comments(asset_id))
         sleep(60)
 
-
-df = scrape_subreddits()
-print(df["address"])
-
-# get_post_comments(submission_id)
-
-# track_asset("mx718g")
-# tokens_df = scrape_subreddits()
-# print(tokens_df)
-
-
-# # print(tkn.id)
-# print("ID: ", tkn["id"])
-# print("URL: ", tkn["full_link"])
