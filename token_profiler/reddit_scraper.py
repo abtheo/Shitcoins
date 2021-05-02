@@ -44,7 +44,7 @@ def try_find_in_matches(query, matches):
     return ""
 
 
-def extract_selftext_info(selftext):
+def extract_selftext_info(selftext, verbose=False):
     """Extract relevant information
     from a Reddit main post.
 
@@ -93,7 +93,7 @@ def extract_selftext_info(selftext):
     # Check number of BSCScan URLS linked
     df["bscscan_count"] = sum(
         [1 if "bscscan" in url else 0 for url in url_matches])
-    print(df)
+    if(verbose): print(df)
     return df
 
 
@@ -148,7 +148,7 @@ def parse_json_fields(request):
     } for data in request]
 
 
-def scrape_subreddits(time="120s", size=5):
+def scrape_subreddits(time="120s", size=5, verbose=False):
     url = r"https://api.pushshift.io/reddit/submission/search/?" + \
         r"&sort_type=score" + \
         f"&after={time}" + \
@@ -166,10 +166,10 @@ def scrape_subreddits(time="120s", size=5):
     for sub in subreddits:
         # Send request to subreddit
         sub_url = url + f"&subreddit={sub}"
-        print(f"Sending request to {sub_url}")
+        if(verbose): print(f"Sending request to {sub_url}")
         r = requests.get(sub_url)
         if r.status_code != requests.codes.ok:
-            print(f"Bad request, skipping {sub_url}")
+            if(verbose): print(f"Bad request, skipping {sub_url}")
             continue
         # Parse response as JSON
         j_data = json.loads(r.text)
@@ -179,7 +179,7 @@ def scrape_subreddits(time="120s", size=5):
         df = pd.DataFrame(data)
         df.dropna(how='all', axis=1, inplace=True)
         if len(df) == 0:
-            print(f"No results found for query {sub_url}")
+            if(verbose): print(f"No results found for query {sub_url}")
             continue
 
         # Add columns for data extraction
@@ -197,9 +197,9 @@ def scrape_subreddits(time="120s", size=5):
                 removed.append(post)
                 continue
 
-            print(f"Extracting info from post {df.iloc[post]['id']}")
+            if(verbose): print(f"Extracting info from post {df.iloc[post]['id']}")
             # Extract relevant info from selftext
-            token_info = extract_selftext_info(selftext)
+            token_info = extract_selftext_info(selftext, verbose)
             if not token_info:
                 continue
 
@@ -226,14 +226,14 @@ def scrape_subreddits(time="120s", size=5):
     return df
 
 
-def get_post_comments(submission_id):
+def get_post_comments(submission_id, verbose=False):
     # Fuckin' sucks
     # Do a direct request to reddit instead
     url = r"https://api.pushshift.io/reddit/submission/comment_ids/" + \
         submission_id[1]
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
-        print(f"Bad request, skipping {url}")
+        if(verbose): print(f"Bad request, skipping {url}")
 
     return r.text
 
@@ -244,17 +244,3 @@ def track_asset(asset_id, resolution=60):
     while True:
         print(get_post_comments(asset_id))
         sleep(60)
-
-
-# get_post_comments(submission_id)
-
-# track_asset("mx718g")
-tokens_df = scrape_subreddits()
-# print(tokens_df)
-
-
-# # print(tkn.id)
-# print("ID: ", tkn["id"])
-# print("URL: ", tkn["full_link"])
-for i, tkn in tokens_df.iterrows():
-    track_asset(tkn["id"])
