@@ -14,3 +14,4 @@ blockchain/chainlink-mix
 crash.log
 
 */__pycache__*
+!**/__pycache__/

@@ -32,6 +32,18 @@ class Profiler:
     def __exit__(self, exc_type, exc_value, traceback):
         self.driver.close()
 
+    def query_token_sniffer(self, address):
+        url = "https://tokensniffer.com/token/" + address
+        self.driver.get(url)
+        sleep(1)
+
+        if "WARNING" in self.driver.page_source:
+            return "SCAM"
+        if "This page could not be found" in self.driver.page_source:
+            return "404"
+        return "OKAY"
+        
+
     def query_poocoin(self,address):
         #Direct driver to Poocoin URL
         url = 'https://poocoin.app/tokens/' + address
@@ -122,11 +134,37 @@ class Profiler:
         earliest_tx = df["Date Time (UTC)"].min()
 
         #TODO: Hunt for Whales
+        #Switch to Holders table tab
+        self.driver.find_element_by_xpath(
+            "//*[@id='ContentPlaceHolder1_tabHolders']").click()
+        sleep(1)
+
+        #Holy shit this is gross
+        #Find contract icon by <i> -> <span> -> <td> -> <tr> -> <td>rowKey</td>
+        icons = self.driver.find_elements_by_class_name("fa-file-alt")
+        icons = [i.find_element_by_xpath('..').find_element_by_xpath('..').find_element_by_xpath('..')
+                .get_attribute('innerHTML')[:10] for i in icons]
+        #Then parse out the <td></td> HTML tags to get the row number
+        contract_rows = [int(re.sub("[^0-9]", "", i))-1 for i in icons]
+
+        # Parse raw HTML with BeautifulSoup
+        soup = BeautifulSoup(self.driver.page_source, features="html.parser")
+
+        # Scrape HTML table
+        table_data = soup.find(
+            "table", {"class": "table table-md-text-normal table-hover"})
+        df = pd.read_html(str(table_data))[0]
+        df.dropna(axis=1, how='all', inplace=True)
+     
+        # Boolean for IsContractAddress, indicated by the icon on BSCscan
+        df["is_contract_address"] = False
+        df.loc[contract_rows, "is_contract_address"] = True
 
         return {
             "num_transactions": num_transactions,
             "num_holders" : num_holders,
-            "age" : earliest_tx
+            "age" : earliest_tx,
+            "holder_df": df
         }
 
     def query_bscscan_liquidity_providers(self, url):
@@ -151,10 +189,9 @@ class Profiler:
             (By.XPATH, "//*[@id='tokeholdersiframe']")))
         sleep(1)
 
-        icons = self.driver.find_elements_by_class_name("fa-file-alt")
-
         #Holy shit this is gross
         #Find contract icon by <i> -> <span> -> <td> -> <tr> -> <td>rowKey</td>
+        icons = self.driver.find_elements_by_class_name("fa-file-alt")
         icons = [i.find_element_by_xpath('..').find_element_by_xpath('..').find_element_by_xpath('..')
                 .get_attribute('innerHTML')[:10] for i in icons]
         #Then parse out the <td></td> HTML tags to get the row number
@@ -185,6 +222,7 @@ class Profiler:
         #Query token on BSCScan
         bscscan_stats = self.query_bscscan_token(address)
 
+        # Query Liquidity Provider holders on BSCScan
         # [Rank, Address, Quantity, Percentage, is_contract_address]
         v1_lp_holders = self.query_bscscan_liquidity_providers(poocoin_stats["v1_lp_address"])
         v2_lp_holders = self.query_bscscan_liquidity_providers(poocoin_stats["v2_lp_address"])
@@ -203,4 +241,7 @@ class Profiler:
 if __name__ == "__main__":
     with Profiler() as profiler:
         address = "0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331"
-        print(profiler.profile_token(address))
+        # print(profiler.query_bscscan_token(address))
+        print(profiler.query_token_sniffer("0x621a1aa54b7441589296c22798d81a454ab9922d"))
+        print(profiler.query_token_sniffer("0x8f874aac175d90962dea5f1b5ab5b5012561f8ab"))
+        print(profiler.query_token_sniffer("0x8f874aac175d90962dea5f1b5ab5b5012561f8af"))
