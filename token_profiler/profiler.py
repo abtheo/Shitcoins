@@ -63,7 +63,7 @@ class Profiler:
         sell_txs = tx_table.text.count("Sell")
 
         return {
-            "sell": bool(sell_txs),
+            "sell_exists": bool(sell_txs),
             "v1_lp_address": v1_lp_holders,
             "v2_lp_address": v2_lp_holders,
             "v1_bnb_holdings": v1_bnb,
@@ -145,8 +145,16 @@ class Profiler:
         # Focus holders table
         WebDriverWait(self.driver, 5).until(EC.frame_to_be_available_and_switch_to_it(
             (By.XPATH, "//*[@id='tokeholdersiframe']")))
-
         sleep(1)
+
+        icons = self.driver.find_elements_by_class_name("fa-file-alt")
+
+        #Holy shit this is gross
+        #Find contract icon by <i> -> <span> -> <td> -> <tr> -> <td>rowKey</td>
+        icons = [i.find_element_by_xpath('..').find_element_by_xpath('..').find_element_by_xpath('..')
+                .get_attribute('innerHTML')[:10] for i in icons]
+        #Then parse out the <td></td> HTML tags to get the row number
+        contract_rows = [int(re.sub("[^0-9]", "", i))-1 for i in icons]
 
         # Parse raw HTML with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, features="html.parser")
@@ -154,34 +162,19 @@ class Profiler:
         # Scrape HTML table
         table_data = soup.find(
             "table", {"class": "table table-md-text-normal table-hover"})
-
-        #Find <i>
-        #Replace from <i> to </a>
-        str(table_data)
-
-
         df = pd.read_html(str(table_data))[0]
         df.dropna(axis=1, how='all', inplace=True)
 
-        print(df)
+        # Boolean for IsContractAddress, indicated by the icon on BSCscan
+        df["contract_address"] = False
+        df.loc[contract_rows, "contract_address"] = True
 
         dead_address = "0x000000000000000000000000000000000000dead"
 
-
-        # #Get Age of token (first tx datetime)
-        # df.dropna(axis=1, how='all', inplace=True)
-        # df["Date Time (UTC)"] = pd.to_datetime(df["Date Time (UTC)"])
-        # earliest_tx = df["Date Time (UTC)"].min()
-
-        # return {
-        #     "num_transactions": num_transactions,
-        #     "num_holders" : num_holders,
-        #     "age" : earliest_tx
-        # }
-
+        return df
 
 if __name__ == "__main__":
     with Profiler() as profiler:
-        dd = profiler.query_poocoin("0x2f801292924433f41e34669b0817f990764ecaa0")
-        print(dd)
-        # df = profiler.query_bscscan_liquidity_providers("https://bscscan.com/token/0xef2ec90e0b8d4cdfdb090989ea1bc663f0d680bf#balances")
+        # dd = profiler.query_poocoin("0x2f801292924433f41e34669b0817f990764ecaa0")
+        
+        df = profiler.query_bscscan_liquidity_providers("https://bscscan.com/token/0xef2ec90e0b8d4cdfdb090989ea1bc663f0d680bf#balances")
