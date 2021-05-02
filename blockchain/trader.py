@@ -26,7 +26,7 @@ class Trader:
             address=self.pancakeswapAddress, abi=self.pancakeswap_abi)
 
         # Read wallet private key
-        self.account = Account.from_key(config["PRIVATE_KEY"])
+        self.account = Account.from_key(self.config["PRIVATE_KEY"])
 
         # Chain ID of Binance Smart Chain mainnet
         self.chainId = "0x38"

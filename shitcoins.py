@@ -4,8 +4,8 @@ import blockchain.trader as Trading
 import pandas as pd
 import threading
 from datetime import datetime, timedelta
+import time
 # Step 4 - do some logic to figure out how much to buy, choose trading strategy
-# Step 5 - monitor price (pikey code from trader.py)
 # Step 6 - Use trader.py to buy/sell
 
 # Thread class to track and trade a specific shitcoin contract address
@@ -32,12 +32,13 @@ class Shitcoin(threading.Thread):
     def printBalance(self):
         print(self.contract + ": You have " + self.bnb + " BNB and " + self.shitcoin + " tokens.")
 
+    # 'Paper' buy
     def buy(self, bnb):
         self.bnb -= bnb
         self.shitcoin += bnb / currentPrice()
         print(self.contract + ": Bought " + self.shitcoin + " for " + currentPrice())
 
-
+    # 'Paper' sell
     def sell(self, shitcoin):
         self.shitcoin -= shitcoin
         self.bnb += shitcoin * currentPrice()
@@ -50,6 +51,8 @@ class Shitcoin(threading.Thread):
             price = currentPrice()
             if (price < 0.6 * entryPrice) or (price > 3  * entryPrice):
                 break
+            time.sleep(5)
+
         sell(self.shitcoin)
         printBalance()
 
@@ -67,24 +70,32 @@ class Tracker:
         self.tokenProfiler = profiler.Profiler()
         self.tokenDict = {}
 
-    def track(self):
+    def track(self, trading_mode=True):
         while(True):
-            redditTokens = reddit_scraper.scrape_subreddits(time=10)
-            addresses = [a for a in redditTokens["address"] if a != '']
+            redditTokens = reddit_scraper.scrape_subreddits(time="400s")
+            print(redditTokens)
+            try:
+                addresses = [a for a in redditTokens["address"] if a != '']
+            except:
+                addresses = []
 
             for a in addresses:
                 if a not in self.tokenDict.keys():
                     print("============================================")
-                    print("Address: " + a)
-                    profile = self.tokenProfiler.profile_token(a)
-                    print(profile['stats'])
-                    self.tokenDict[a] = Shitcoin(a, profile, 0.1, self.trader)
-                    self.tokenDict[a].run()
+                    print("New Token Discovered: " + a)
+                    print("Time: " + str(datetime.now()))
 
-            time.wait(10)
+                    if (trading_mode):
+                        profile = self.tokenProfiler.profile_token(a)
+                        #print("Profile:")
+                        #print(profile)
+                        self.tokenDict[a] = Shitcoin(a, profile, 0.1, self.trader)
+                        self.tokenDict[a].run()
+
+            time.sleep(10)
 
         #print("Profiling MoonCunt:")
         #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
 
 t = Tracker()
-t.track()
+t.track(trading_mode = False)
