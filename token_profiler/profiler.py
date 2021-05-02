@@ -125,46 +125,55 @@ class Profiler:
         # Scrape HTML table
         table_data = soup.find(
             "table", {"class": "table table-md-text-normal table-hover mb-4"})
-        df = pd.read_html(str(table_data))[0]
-        df.dropna(axis=1, how='all', inplace=True)
+        tx_df = pd.read_html(str(table_data))[0]
+        tx_df.dropna(axis=1, how='all', inplace=True)
 
         #Get Age of token (first tx datetime)
         # print(df)
-        df["Date Time (UTC)"] = pd.to_datetime(df["Date Time (UTC)"])
-        earliest_tx = df["Date Time (UTC)"].min()
+        tx_df["Date Time (UTC)"] = pd.to_datetime(tx_df["Date Time (UTC)"])
+        earliest_tx = tx_df["Date Time (UTC)"].min()
 
         #TODO: Hunt for Whales
         #Switch to Holders table tab
-        self.driver.find_element_by_xpath(
-            "//*[@id='ContentPlaceHolder1_tabHolders']").click()
-        sleep(1)
+        # self.driver.get(url+"#balances")
 
-        #Holy shit this is gross
-        #Find contract icon by <i> -> <span> -> <td> -> <tr> -> <td>rowKey</td>
-        icons = self.driver.find_elements_by_class_name("fa-file-alt")
-        icons = [i.find_element_by_xpath('..').find_element_by_xpath('..').find_element_by_xpath('..')
-                .get_attribute('innerHTML')[:10] for i in icons]
-        #Then parse out the <td></td> HTML tags to get the row number
-        contract_rows = [int(re.sub("[^0-9]", "", i))-1 for i in icons]
+        # WebDriverWait(self.driver, 25).until(EC.frame_to_be_available_and_switch_to_it(
+        #     (By.XPATH, "//*[@id='tokeholdersiframe']")))
+        
+        # WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH,"//*[@id='ContentPlaceHolder1_tabHolders']"))).click()
+        
+        # Focus Holders table
+        # WebDriverWait(self.driver, 15).until(EC.frame_to_be_available_and_switch_to_it(
+        #     (By.XPATH, "//*[@id='tokeholdersiframe']")))
+        # sleep(5)
 
-        # Parse raw HTML with BeautifulSoup
-        soup = BeautifulSoup(self.driver.page_source, features="html.parser")
+        # #Holy shit this is gross
+        # #Find contract icon by <i> -> <span> -> <td> -> <tr> -> <td>rowKey</td>
+        # icons = self.driver.find_elements_by_class_name("fa-file-alt")
+        # icons = [i.find_element_by_xpath('..').find_element_by_xpath('..').find_element_by_xpath('..')
+        #         .get_attribute('innerHTML')[:10] for i in icons]
+        # #Then parse out the <td></td> HTML tags to get the row number
+        # contract_rows = [int(re.sub("[^0-9]", "", i))-1 for i in icons]
 
-        # Scrape HTML table
-        table_data = soup.find(
-            "table", {"class": "table table-md-text-normal table-hover"})
-        df = pd.read_html(str(table_data))[0]
-        df.dropna(axis=1, how='all', inplace=True)
+        # # Parse raw HTML with BeautifulSoup
+        # soup = BeautifulSoup(self.driver.page_source, features="html.parser")
 
-        # Boolean for IsContractAddress, indicated by the icon on BSCscan
-        df["is_contract_address"] = False
-        df.loc[contract_rows, "is_contract_address"] = True
+        # # Scrape HTML table
+        # table_data = soup.find(
+        #     "table", {"class": "table table-md-text-normal table-hover"})
+        # holders_df = pd.read_html(str(table_data))[0]
+        # holders_df.dropna(axis=1, how='all', inplace=True)
+     
+        # # Boolean for IsContractAddress, indicated by the icon on BSCscan
+        # holders_df["is_contract_address"] = False
+        # holders_df.loc[contract_rows, "is_contract_address"] = True
+        # "holders_df": holders_df
 
         return {
             "num_transactions": num_transactions,
             "num_holders" : num_holders,
             "age" : earliest_tx,
-            "holder_df": df
+            "tx_df": tx_df,
         }
 
     def query_bscscan_liquidity_providers(self, url):
@@ -178,14 +187,14 @@ class Profiler:
         except TimeoutException:
             print("FAIL - Loading took too much time!")
 
-        sleep(0.5)
+        sleep(1)
 
         # Extract number of token holders
         holders = self.driver.find_element_by_class_name("mr-3").text
         num_lp_holders = int(re.sub("[^0-9]", "", holders))
 
         # Focus holders table
-        WebDriverWait(self.driver, 5).until(EC.frame_to_be_available_and_switch_to_it(
+        WebDriverWait(self.driver, 15).until(EC.frame_to_be_available_and_switch_to_it(
             (By.XPATH, "//*[@id='tokeholdersiframe']")))
         sleep(1)
 
@@ -241,7 +250,4 @@ class Profiler:
 if __name__ == "__main__":
     with Profiler() as profiler:
         address = "0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331"
-        # print(profiler.query_bscscan_token(address))
-        print(profiler.query_token_sniffer("0x621a1aa54b7441589296c22798d81a454ab9922d"))
-        print(profiler.query_token_sniffer("0x8f874aac175d90962dea5f1b5ab5b5012561f8ab"))
-        print(profiler.query_token_sniffer("0x8f874aac175d90962dea5f1b5ab5b5012561f8af"))
+        print(profiler.query_bscscan_token(address))
