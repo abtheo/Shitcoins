@@ -25,6 +25,7 @@ class Shitcoin(threading.Thread):
         self.earliest_tx = stats['age'].to_pydatetime()
         self.dateSeen = datetime.now()
         self.bnb = bnb
+        self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
         self.trader.getCurrentPrice(self.contract)
@@ -44,17 +45,39 @@ class Shitcoin(threading.Thread):
         self.bnb += shitcoin * currentPrice()
         print(self.contract + ": Sold " + self.shitcoin + " for " + currentPrice())
 
+    def rugcheck(self):
+        if not self.sellExists:
+            return 1
+        if self.token_sniffer = "SCAM":
+            return 1
+        if self.token_sniffer = "OKAY":
+            return 0
+        if self.token_sniffer = "404":
+            return 0.5
+        # TODO: LP distribution
+        # LP distirbution
+
     def earlyEntryStrategy(self):
         entryPrice = currentPrice()
+        peakPrice = entryPrice
+        targetMultiplier = 2
+        lastTarget = entryPrice
         buy(min(0.05, bnb))
+
         while (True):
             price = currentPrice()
-            if (price < 0.6 * entryPrice) or (price > 3  * entryPrice):
-                break
-            time.sleep(5)
+            peakPrice = max(price, peakPrice)
 
-        sell(self.shitcoin)
-        printBalance()
+            # If it drops 40% from the all-time high, sell all
+            if (price < 0.6 * peakPrice):
+                sell(self.shitcoin)
+                return
+
+            # Sell 25% of holdings each time price goes up by another multiple
+            if (price > lastTarget * targetMultiplier):
+                sell(0.25*self.shitcoin)
+                lastTarget = lastTarget * targetMultiplier
+            time.sleep(2)
 
     def run(self):
         if not self.sellExists:
@@ -62,6 +85,7 @@ class Shitcoin(threading.Thread):
         if (self.dateSeen - self.earliest_tx) > timedelta(hours=1):
             return
         earlyEntryStrategy()
+
 
 # Class for overseeing the trading of shitcoins, and
 class Tracker:
@@ -72,7 +96,7 @@ class Tracker:
 
     def track(self, trading_mode=True):
         while(True):
-            redditTokens = reddit_scraper.scrape_subreddits(time="400s")
+            redditTokens = reddit_scraper.scrape_subreddits(time="11000s")
             print(redditTokens)
             try:
                 addresses = [a for a in redditTokens["address"] if a != '']
@@ -97,5 +121,7 @@ class Tracker:
         #print("Profiling MoonCunt:")
         #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
 
-t = Tracker()
-t.track(trading_mode = False)
+#t = Tracker()
+#t.track(trading_mode = False)
+
+print(reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots']))

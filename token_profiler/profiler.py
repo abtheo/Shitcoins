@@ -42,7 +42,7 @@ class Profiler:
         if "This page could not be found" in self.driver.page_source:
             return "404"
         return "OKAY"
-        
+
 
     def query_poocoin(self,address):
         #Direct driver to Poocoin URL
@@ -244,6 +244,7 @@ class Profiler:
         profile.update(v1_lp_holders)
         profile.update(v2_lp_holders)
         profile['stats'] = bscscan_stats
+        profile['token_sniffer'] = query_token_sniffer(address)
         return profile
 
 if __name__ == "__main__":
