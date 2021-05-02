@@ -12,3 +12,6 @@ blockchain/chainlink-mix
 
 # Crash log files
 crash.log
+
+__pycache__
+
