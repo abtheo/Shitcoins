@@ -28,7 +28,7 @@ class Shitcoin(threading.Thread):
         self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
-        self.trader.getCurrentPrice(self.contract)
+        self.trader.get_shitcoin_price_in_bnb(self.contract)
 
     def printBalance(self):
         print(self.contract + ": You have " + self.bnb + " BNB and " + self.shitcoin + " tokens.")
@@ -48,11 +48,11 @@ class Shitcoin(threading.Thread):
     def rugcheck(self):
         if not self.sellExists:
             return 1
-        if self.token_sniffer = "SCAM":
+        if self.token_sniffer == "SCAM":
             return 1
-        if self.token_sniffer = "OKAY":
+        if self.token_sniffer == "OKAY":
             return 0
-        if self.token_sniffer = "404":
+        if self.token_sniffer == "404":
             return 0.5
         # TODO: LP distribution
         # LP distirbution
@@ -121,7 +121,7 @@ class Tracker:
         #print("Profiling MoonCunt:")
         #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
 
-#t = Tracker()
-#t.track(trading_mode = False)
+t = Tracker()
+t.track(trading_mode = True)
 
-print(reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots']))
+#print(reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots']))
