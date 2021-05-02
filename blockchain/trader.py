@@ -2,14 +2,18 @@ from web3 import Web3
 from eth_account import Account
 import json
 import datetime
-
+import os
 
 class Trader:
     def __init__(self):
         # Load config files
-        with open('./config.json') as f:
+        filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        configFile = filepath + "/config.json"
+        pancakeABI = filepath + "/pancakeswap_abi.json"
+
+        with open(configFile) as f:
             self.config = json.load(f)
-        with open('./pancakeswap_abi.json') as f:
+        with open(pancakeABI) as f:
             self.pancakeswap_abi = json.load(f)
 
         # Connect to BSC node

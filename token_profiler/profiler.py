@@ -116,6 +116,7 @@ class Profiler:
         df.dropna(axis=1, how='all', inplace=True)
 
         #Get Age of token (first tx datetime)
+        print(df)
         df["Date Time (UTC)"] = pd.to_datetime(df["Date Time (UTC)"])
         earliest_tx = df["Date Time (UTC)"].min()
 
@@ -190,6 +191,12 @@ class Profiler:
         # Check if liquidity is sufficient + locked
         dead_address = "0x000000000000000000000000000000000000dead"
 
+        # Return full dictionary
+        profile = poocoin_stats
+        profile.update(v1_lp_holders)
+        profile.update(v2_lp_holders)
+        profile['stats'] = bscscan_stats
+        return profile
 
 if __name__ == "__main__":
     with Profiler() as profiler:
