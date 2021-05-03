@@ -55,23 +55,33 @@ class ApeScraper:
     def scrape_ape(self):
         # Parse raw HTML with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, features="html.parser")
+        urls = self.driver.find_elements_by_xpath('//a[contains(@href,"https://bscscan.com/address")]')
         # Scrape HTML table
         table_data = soup.find(
             "table", {"class": "table table-bordered table-sm text-small text-center"})
+        
         df = pd.read_html(str(table_data))[0]
         df.dropna(axis=1, how='all', inplace=True)
         df["Age"] = df["Creation Time"].apply(lambda x: x[8:16])
         df["Creation Time"] = df["Creation Time"].apply(lambda x: x[:8])
+
+        #Something weird happened, error
+        if not len(urls) == len(df):
+            return pd.DataFrame()
+
+        #Find Contract URLS + addresses
+        df["url"] = [elem.get_attribute('href') for elem in urls]
+        df["address"] = df["url"].apply(lambda x: x[-47:-5])
 
         #If a duplicate name is found, drop both.
         #That's someone pumping out shitcoins programmatically, definite rug.
         df.drop_duplicates("Token", keep=False)
         return df
 
-if __name__ == "__main__":
-    ape_scraper = ApeScraper()
-    while True:
-        df = ape_scraper.scrape_ape()
-        print(df)
-        #Poocoin table goes back about an hour, but we need to query constantly
-        sleep(10)
+# if __name__ == "__main__":
+#     ape_scraper = ApeScraper()
+#     while True:
+#         df = ape_scraper.scrape_ape()
+#         print(df)
+#         #Poocoin table goes back about an hour, but we need to query constantly
+#         sleep(120)

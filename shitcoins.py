@@ -1,5 +1,6 @@
-import token_profiler.reddit_scraper as reddit_scraper
-import token_profiler.profiler as profiler
+# import token_profiler.reddit_scraper as reddit_scraper
+from token_profiler.profiler import Profiler
+from token_profiler.ape_scraper import ApeScraper
 from blockchain.trader import Trader
 import pandas as pd
 import threading
@@ -18,6 +19,7 @@ class Shitcoin(threading.Thread):
             self.type = 'v1'
         else: self.type = 'v2'
 
+        self.profile = profile
         stats = profile['stats']
         self.address = address
         self.sellExists = profile['sell_exists']
@@ -25,7 +27,7 @@ class Shitcoin(threading.Thread):
         self.earliest_tx = stats['age'].to_pydatetime()
         self.dateSeen = datetime.now()
         self.bnb = bnb
-        self.token_sniffer = profile['token_sniffer']
+        # self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
         return self.trader.get_shitcoin_price_in_bnb(self.address)
@@ -80,30 +82,40 @@ class Shitcoin(threading.Thread):
             time.sleep(2)
 
     def run(self):
-        if not self.sellExists:
+        print(self.profile)
+        #Ensure at least one Sell transaction has happened
+        if not self.profile["sell_exists"]:
             return
-        if (self.dateSeen - self.earliest_tx) > timedelta(hours=1):
+        #Less than X hours old
+        if (self.dateSeen - self.earliest_tx) > timedelta(hours=3):
             return
-        earlyEntryStrategy()
+        #Locked Liquidity >= BNB
+        if self.profile["locked_liquidity"] < 1.5:
+            return
+        print("==========FOUND A MOONSHOT==========")
+        print(self)
+        print("================================")
+        # earlyEntryStrategy()
 
 
 # Class for overseeing the trading of shitcoins, and
 class Tracker:
     def __init__(self):
         self.trader = Trader()
-        self.tokenProfiler = profiler.Profiler()
+        self.tokenProfiler = Profiler()
         self.tokenDict = {}
+        self.ape_scraper = ApeScraper()
 
-    def track(self, refresh_rate=60, trading_mode=True):
+    def track(self, refresh_rate=60*5, trading_mode=True):
         while(True):
-            redditTokens = reddit_scraper.scrape_subreddits(time=f"{refresh_rate}s")
-            print(redditTokens)
+            # redditTokens = reddit_scraper.scrape_subreddits(time=f"{refresh_rate}s")
+            tokens = self.ape_scraper.scrape_ape()
             try:
-                addresses = [a for a in redditTokens["address"] if a != '']
+                addresses = [a for a in tokens["address"] if a != '']
             except:
                 addresses = []
-
-            for a in addresses:
+            #Start with oldest token and work towards future
+            for a in addresses[::-1]:
                 if a not in self.tokenDict.keys():
                     print("============================================")
                     print("New Token Discovered: " + a)

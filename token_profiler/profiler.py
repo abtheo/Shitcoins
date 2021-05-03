@@ -56,7 +56,7 @@ class Profiler:
                 EC.presence_of_element_located((By.CLASS_NAME, 'px-3')))
         except TimeoutException:
             print("Loading took too much time!")
-        sleep(2)
+        sleep(1)
 
         #Get links to BSCScan for Liquidity Providers
         v1_lp_address = self.driver.find_element_by_xpath(
@@ -74,12 +74,15 @@ class Profiler:
         v2_bnb = float(re.sub("[^0-9.]", "", values[1].replace("V2","").split(":")[1]))
 
         #Determine if any Sell transactions have taken place
-        tx_table = self.driver.find_element_by_xpath(
-            "//*[@id='root']/div/div[1]/div[2]/div/div[2]/div[2]/div/div[3]/div[1]/div/div[2]")
-        sell_txs = tx_table.text.count("Sell")
+        try:
+            tx_table = self.driver.find_element_by_xpath(
+                "//*[@id='root']/div/div[1]/div[2]/div/div[2]/div[2]/div/div[3]/div[1]/div/div[2]")
+            sell_txs = bool(tx_table.text.count("Sell"))
+        except:
+            sell_txs = False
 
         return {
-            "sell_exists": bool(sell_txs),
+            "sell_exists": sell_txs,
             "v1_lp_address": v1_lp_address,
             "v2_lp_address": v2_lp_address,
             "v1_bnb_holdings": v1_bnb,
@@ -91,12 +94,19 @@ class Profiler:
         url = 'https://bscscan.com/token/' + address
         self.driver.get(url)
         # Await page load by querying a specific element
-        max_delay = 10
+        max_delay = 25
         try:
             myElem = WebDriverWait(self.driver, max_delay).until(
                 EC.presence_of_element_located((By.ID, 'totaltxns')))
         except TimeoutException:
             print("FAIL - Loading took too much time!")
+            return {
+            "num_transactions": 0,
+            "num_holders" : 0,
+            "age" : datetime.now(),
+            "tx_df": pd.DataFrame(),
+        }
+
 
         sleep(0.5)
         # Extract total number of transactions
@@ -116,10 +126,11 @@ class Profiler:
             # Switch DateTime format
             age_elem = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='lnkTokenTxnsAgeDateTime']"))).click()
 
-        # Select Last Page of TXs
-        self.driver.find_element_by_xpath(
-            "//*[@id='maindiv']/div[1]/nav/ul/li[5]/a/span[1]").click()
-
+        # Select Last Page of TXs (may not exist if 1 page only)
+        try:
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='maindiv']/div[1]/nav/ul/li[5]/a/span[1]"))).click()
+        except:
+            pass
         # Parse raw HTML with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, features="html.parser")
 
@@ -186,7 +197,6 @@ class Profiler:
             myElem = WebDriverWait(self.driver, max_delay).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'mr-3')))
         except TimeoutException:
-            print("FAIL - Likely no liquidity available in this version")
             return pd.DataFrame
 
         sleep(1)
@@ -229,6 +239,12 @@ class Profiler:
     def profile_token(self, address):
         #Start by querying Poocoin to get BSCScan LP links
         poocoin_stats = self.query_poocoin(address)
+        # TODO: Exit early if no liquidity
+        # if poocoin_stats["v1_bnb_holdings"] < 1 and poocoin_stats["v2_bnb_holdings"] < 1:
+        #     poocoin_stats["locked_liquidity"] = 0
+        #     poocoin_stats["tx_df"] = pd.DataFrame()
+
+        #     return poocoin_stats
 
         #Query token on BSCScan
         bscscan_stats = self.query_bscscan_token(address)
@@ -239,6 +255,8 @@ class Profiler:
         v2_lp_holders = self.query_bscscan_liquidity_providers(poocoin_stats["v2_lp_address"])
 
         def check_locked_liquidty(df, liquidity_value):
+            if "There are no matching entries" == df["Percentage"].iloc[0]:
+                return 0
             #Find real value of liquidty per address (in BNB)
             df["percent_float"] = df["Percentage"].apply(lambda x: float(x.strip('%'))/100)
             df["bnb_value"] = df["percent_float"] * liquidity_value
@@ -247,11 +265,10 @@ class Profiler:
             # Check if liquidity is sufficient + locked
             dead_address = "0x000000000000000000000000000000000000dead"
             if dead_address in df["Address"]:
-                dead_idx = df[df["Address"]==dead_address].index
-                total_locked += df.loc[dead_idx, "bnb_value"]
+                total_locked += sum(df[df["Address"]==dead_address]["bnb_value"])
             
             contract_addresses = df[df["is_contract_address"]==True]
-            total_locked += contract_addresses["bnb_value"]
+            total_locked += sum(contract_addresses["bnb_value"])
 
             return total_locked
 
@@ -267,12 +284,12 @@ class Profiler:
         profile['v1_lp_holders'] = v1_lp_holders
         profile['v2_lp_holders'] = v2_lp_holders
         profile['stats'] = bscscan_stats
-        profile['token_sniffer'] = self.query_token_sniffer(address)
+        # profile['token_sniffer'] = self.query_token_sniffer(address)
         profile['locked_liquidity'] = total_locked
         return profile
 
-if __name__ == "__main__":
-    with Profiler() as profiler:
-        address = "0x1a6c2c3c52cd3cc21db2b8f2b331ca9c4780f1ee"
-        profile = profiler.profile_token(address)
-        print(profile)
+# if __name__ == "__main__":
+#     with Profiler() as profiler:
+#         address = "0x1a6c2c3c52cd3cc21db2b8f2b331ca9c4780f1ee"
+#         profile = profiler.profile_token(address)
+#         print(profile)
