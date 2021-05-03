@@ -33,6 +33,7 @@ class Profiler:
         self.driver.close()
 
     def query_token_sniffer(self, address):
+        #TODO: Refactor this to a simple HTTP request
         url = "https://tokensniffer.com/token/" + address
         self.driver.get(url)
         sleep(1)
@@ -69,8 +70,8 @@ class Profiler:
         #Disgustingly parse out the BNB holdings in V1 and V2 LPs
         bnb_lp_values = self.driver.find_element_by_xpath("//*[@id='root']/div/div[1]/div[2]/div/div[1]/div[2]/small").text
         values = bnb_lp_values.split('BNB')
-        v1_bnb = float(re.sub("[^0-9.]", "", values[0]))
-        v2_bnb = float(re.sub("[^0-9.]", "", values[1].split(":")[1]))
+        v1_bnb = float(re.sub("[^0-9.]", "", values[0].replace("V1","")))
+        v2_bnb = float(re.sub("[^0-9.]", "", values[1].replace("V2","").split(":")[1]))
 
         #Determine if any Sell transactions have taken place
         tx_table = self.driver.find_element_by_xpath(
@@ -180,12 +181,13 @@ class Profiler:
          # Direct driver to given LP URL
         self.driver.get(url)
         # Await page load by querying a specific element
-        max_delay = 10
+        max_delay = 25
         try:
             myElem = WebDriverWait(self.driver, max_delay).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'mr-3')))
         except TimeoutException:
-            print("FAIL - Loading took too much time!")
+            print("FAIL - Likely no liquidity available in this version")
+            return pd.DataFrame
 
         sleep(1)
 
@@ -236,18 +238,41 @@ class Profiler:
         v1_lp_holders = self.query_bscscan_liquidity_providers(poocoin_stats["v1_lp_address"])
         v2_lp_holders = self.query_bscscan_liquidity_providers(poocoin_stats["v2_lp_address"])
 
-        # Check if liquidity is sufficient + locked
-        dead_address = "0x000000000000000000000000000000000000dead"
+        def check_locked_liquidty(df, liquidity_value):
+            #Find real value of liquidty per address (in BNB)
+            df["percent_float"] = df["Percentage"].apply(lambda x: float(x.strip('%'))/100)
+            df["bnb_value"] = df["percent_float"] * liquidity_value
 
+            total_locked = 0
+            # Check if liquidity is sufficient + locked
+            dead_address = "0x000000000000000000000000000000000000dead"
+            if dead_address in df["Address"]:
+                dead_idx = df[df["Address"]==dead_address].index
+                total_locked += df.loc[dead_idx, "bnb_value"]
+            
+            contract_addresses = df[df["is_contract_address"]==True]
+            total_locked += contract_addresses["bnb_value"]
+
+            return total_locked
+
+        #Calculate locked liquidity
+        total_locked = 0
+        if not v1_lp_holders.empty:
+            total_locked += check_locked_liquidty(v1_lp_holders, poocoin_stats["v1_bnb_holdings"])
+        if not v2_lp_holders.empty:
+            total_locked+= check_locked_liquidty(v2_lp_holders, poocoin_stats["v2_bnb_holdings"])
+        
         # Return full dictionary
         profile = poocoin_stats
-        profile.update(v1_lp_holders)
-        profile.update(v2_lp_holders)
+        profile['v1_lp_holders'] = v1_lp_holders
+        profile['v2_lp_holders'] = v2_lp_holders
         profile['stats'] = bscscan_stats
-        profile['token_sniffer'] = query_token_sniffer(address)
+        profile['token_sniffer'] = self.query_token_sniffer(address)
+        profile['locked_liquidity'] = total_locked
         return profile
 
 if __name__ == "__main__":
     with Profiler() as profiler:
-        address = "0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331"
-        print(profiler.query_bscscan_token(address))
+        address = "0x1a6c2c3c52cd3cc21db2b8f2b331ca9c4780f1ee"
+        profile = profiler.profile_token(address)
+        print(profile)

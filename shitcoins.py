@@ -1,6 +1,6 @@
 import token_profiler.reddit_scraper as reddit_scraper
 import token_profiler.profiler as profiler
-import blockchain.trader as Trading
+from blockchain.trader import Trader
 import pandas as pd
 import threading
 from datetime import datetime, timedelta
@@ -8,9 +8,9 @@ import time
 # Step 4 - do some logic to figure out how much to buy, choose trading strategy
 # Step 6 - Use trader.py to buy/sell
 
-# Thread class to track and trade a specific shitcoin contract address
+# Thread class to track and trade a specific shitcoin address address
 class Shitcoin(threading.Thread):
-    def __init__(self, contract, profile, bnb, trader):
+    def __init__(self, address, profile, bnb, trader):
         threading.Thread.__init__(self)
 
         # Establish whether pancakeswap v1 or v2 is better
@@ -19,7 +19,7 @@ class Shitcoin(threading.Thread):
         else: self.type = 'v2'
 
         stats = profile['stats']
-        self.contract = contract
+        self.address = address
         self.sellExists = profile['sell_exists']
         self.trader = trader
         self.earliest_tx = stats['age'].to_pydatetime()
@@ -28,22 +28,22 @@ class Shitcoin(threading.Thread):
         self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
-        self.trader.get_shitcoin_price_in_bnb(self.contract)
+        return self.trader.get_shitcoin_price_in_bnb(self.address)
 
     def printBalance(self):
-        print(self.contract + ": You have " + self.bnb + " BNB and " + self.shitcoin + " tokens.")
+        print(self.address + ": You have " + self.bnb + " BNB and " + self.shitcoin + " tokens.")
 
     # 'Paper' buy
     def buy(self, bnb):
         self.bnb -= bnb
         self.shitcoin += bnb / currentPrice()
-        print(self.contract + ": Bought " + self.shitcoin + " for " + currentPrice())
+        print(self.address + ": Bought " + self.shitcoin + " for " + currentPrice())
 
     # 'Paper' sell
     def sell(self, shitcoin):
         self.shitcoin -= shitcoin
         self.bnb += shitcoin * currentPrice()
-        print(self.contract + ": Sold " + self.shitcoin + " for " + currentPrice())
+        print(self.address + ": Sold " + self.shitcoin + " for " + currentPrice())
 
     def rugcheck(self):
         if not self.sellExists:
@@ -90,7 +90,7 @@ class Shitcoin(threading.Thread):
 # Class for overseeing the trading of shitcoins, and
 class Tracker:
     def __init__(self):
-        self.trader = Trading.Trader()
+        self.trader = Trader()
         self.tokenProfiler = profiler.Profiler()
         self.tokenDict = {}
 
