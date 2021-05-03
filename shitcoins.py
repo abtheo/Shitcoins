@@ -94,9 +94,9 @@ class Tracker:
         self.tokenProfiler = profiler.Profiler()
         self.tokenDict = {}
 
-    def track(self, trading_mode=True):
+    def track(self, refresh_rate=60, trading_mode=True):
         while(True):
-            redditTokens = reddit_scraper.scrape_subreddits(time="11000s")
+            redditTokens = reddit_scraper.scrape_subreddits(time=f"{refresh_rate}s")
             print(redditTokens)
             try:
                 addresses = [a for a in redditTokens["address"] if a != '']
@@ -116,7 +116,7 @@ class Tracker:
                         self.tokenDict[a] = Shitcoin(a, profile, 0.1, self.trader)
                         self.tokenDict[a].run()
 
-            time.sleep(10)
+            time.sleep(refresh_rate)
 
         #print("Profiling MoonCunt:")
         #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
