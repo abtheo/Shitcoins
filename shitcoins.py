@@ -27,7 +27,7 @@ class Shitcoin(threading.Thread):
         self.earliest_tx = stats['age'].to_pydatetime()
         self.dateSeen = datetime.now()
         self.bnb = bnb
-        # self.token_sniffer = profile['token_sniffer']
+        self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
         return self.trader.get_shitcoin_price_in_bnb(self.address)
@@ -38,36 +38,53 @@ class Shitcoin(threading.Thread):
     # 'Paper' buy
     def buy(self, bnb):
         self.bnb -= bnb
-        self.shitcoin += bnb / currentPrice()
-        print(self.address + ": Bought " + self.shitcoin + " for " + currentPrice())
+        self.shitcoin += bnb / self.currentPrice()
+        print(self.address + ": Bought " + self.shitcoin + " for " + self.currentPrice())
 
     # 'Paper' sell
     def sell(self, shitcoin):
         self.shitcoin -= shitcoin
-        self.bnb += shitcoin * currentPrice()
-        print(self.address + ": Sold " + self.shitcoin + " for " + currentPrice())
+        self.bnb += shitcoin * self.currentPrice()
+        print(self.address + ": Sold " + self.shitcoin + " for " + self.currentPrice())
 
+    # Returns value between 0 and 1, where 0 is definitely safe and 1 is definitely a rugpull
     def rugcheck(self):
-        if not self.sellExists:
+        rugstatus = 1
+
+        # Almost certainly a rugpull:
+        if (not self.sellExists) or (self.token_sniffer == "SCAM"):
             return 1
-        if self.token_sniffer == "SCAM":
-            return 1
+
+        # If Token Sniffer says it's OK, then unlikely to be rug.
+        # If 404, then very new coin and fairly likely to rug.
         if self.token_sniffer == "OKAY":
-            return 0
-        if self.token_sniffer == "404":
-            return 0.5
+            rugstatus *= 0.25
+        elif self.token_sniffer == "404":
+            rugstatus *= 0.75
+
+        # If not much liquidity is locked, then reasonable chance it's a rugpull
+        if self.profile["locked_liquidity"] < 1.5:
+            rugstatus *= 0.5
+
+        return rugstatus
         # TODO: LP distribution
         # LP distirbution
 
     def earlyEntryStrategy(self):
-        entryPrice = currentPrice()
+        if self.rugcheck() < 0.5:
+            print("Rugpull...")
+            return
+        print("==========FOUND A MOONSHOT==========")
+        print(self)
+        print("================================")
+        entryPrice = self.currentPrice()
         peakPrice = entryPrice
         targetMultiplier = 2
         lastTarget = entryPrice
         buy(min(0.05, bnb))
 
         while (True):
-            price = currentPrice()
+            price = self.currentPrice()
             peakPrice = max(price, peakPrice)
 
             # If it drops 40% from the all-time high, sell all
@@ -90,12 +107,8 @@ class Shitcoin(threading.Thread):
         if (self.dateSeen - self.earliest_tx) > timedelta(hours=3):
             return
         #Locked Liquidity >= BNB
-        if self.profile["locked_liquidity"] < 1.5:
-            return
-        print("==========FOUND A MOONSHOT==========")
-        print(self)
-        print("================================")
-        # earlyEntryStrategy()
+
+        self.earlyEntryStrategy()
 
 
 # Class for overseeing the trading of shitcoins, and

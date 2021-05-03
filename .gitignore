@@ -9,9 +9,14 @@ blockchain/chainlink-mix
 # .tfstate files
 *.tfstate
 *.tfstate.*
+terraform/.terraform*
 
 # Crash log files
 crash.log
 
 */__pycache__/*
 !**/__pycache__/
+
+# For security reasons, don't store private key files on GitHub
+*.pem
+*.ppk

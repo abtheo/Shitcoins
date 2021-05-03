@@ -151,9 +151,9 @@ class Profiler:
 
         # WebDriverWait(self.driver, 25).until(EC.frame_to_be_available_and_switch_to_it(
         #     (By.XPATH, "//*[@id='tokeholdersiframe']")))
-        
+
         # WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH,"//*[@id='ContentPlaceHolder1_tabHolders']"))).click()
-        
+
         # Focus Holders table
         # WebDriverWait(self.driver, 15).until(EC.frame_to_be_available_and_switch_to_it(
         #     (By.XPATH, "//*[@id='tokeholdersiframe']")))
@@ -175,7 +175,7 @@ class Profiler:
         #     "table", {"class": "table table-md-text-normal table-hover"})
         # holders_df = pd.read_html(str(table_data))[0]
         # holders_df.dropna(axis=1, how='all', inplace=True)
-     
+
         # # Boolean for IsContractAddress, indicated by the icon on BSCscan
         # holders_df["is_contract_address"] = False
         # holders_df.loc[contract_rows, "is_contract_address"] = True
@@ -266,7 +266,7 @@ class Profiler:
             dead_address = "0x000000000000000000000000000000000000dead"
             if dead_address in df["Address"]:
                 total_locked += sum(df[df["Address"]==dead_address]["bnb_value"])
-            
+
             contract_addresses = df[df["is_contract_address"]==True]
             total_locked += sum(contract_addresses["bnb_value"])
 
@@ -278,13 +278,13 @@ class Profiler:
             total_locked += check_locked_liquidty(v1_lp_holders, poocoin_stats["v1_bnb_holdings"])
         if not v2_lp_holders.empty:
             total_locked+= check_locked_liquidty(v2_lp_holders, poocoin_stats["v2_bnb_holdings"])
-        
+
         # Return full dictionary
         profile = poocoin_stats
         profile['v1_lp_holders'] = v1_lp_holders
         profile['v2_lp_holders'] = v2_lp_holders
         profile['stats'] = bscscan_stats
-        # profile['token_sniffer'] = self.query_token_sniffer(address)
+        profile['token_sniffer'] = self.query_token_sniffer(address)
         profile['locked_liquidity'] = total_locked
         return profile
 
