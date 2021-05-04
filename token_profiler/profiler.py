@@ -17,6 +17,7 @@ class Profiler:
         self.chrome_options = ChromeOptions()
         self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--window-size=1920x1080")
+        self.chrome_options.add_argument("--log-level=3")
 
         # Use the chrome driver in the same directory as this file, regardless
         # of what the current working directory is.
@@ -73,6 +74,8 @@ class Profiler:
         v1_bnb = float(re.sub("[^0-9.]", "", values[0].replace("V1","")))
         v2_bnb = float(re.sub("[^0-9.]", "", values[1].replace("V2","").split(":")[1]))
 
+        market_cap = self.driver.find_element_by_xpath("//*[@id='root']/div/div[1]/div[2]/div/div[1]/div[2]/span[1]").text
+
         #Determine if any Sell transactions have taken place
         try:
             tx_table = self.driver.find_element_by_xpath(
@@ -86,7 +89,8 @@ class Profiler:
             "v1_lp_address": v1_lp_address,
             "v2_lp_address": v2_lp_address,
             "v1_bnb_holdings": v1_bnb,
-            "v2_bnb_holdings": v2_bnb
+            "v2_bnb_holdings": v2_bnb,
+            "market_cap": market_cap
         }
 
     def query_bscscan_token(self, address):

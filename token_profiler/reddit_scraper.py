@@ -74,13 +74,14 @@ def extract_selftext_info(selftext, verbose=False):
     pancake_address = address_from_url(pancake, "outputCurrency=")
     poocoin_address = address_from_url(poocoin, "tokens/")
 
+    #Ensure address is valid hex (lazy sorry)
     if not (pancake_address or poocoin_address):
         return False
 
-    if len(pancake_address) == 42:
+    if len(pancake_address) == 42 and "0x" in pancake_address:
         df["address"] = pancake_address
 
-    if len(poocoin_address) == 42:
+    if len(poocoin_address) == 42 and "0x" in poocoin_address:
         df["address"] = poocoin_address
 
     df["poocoin"] = fix_shitty_regex(poocoin)
@@ -126,14 +127,16 @@ def parse_json_fields(request):
 
 def scrape_subreddits(time="120s", size=5, verbose=False, subreddits=[]):
     url = r"https://api.pushshift.io/reddit/submission/search/?" + \
-        r"&sort_type=score" + \
+        r"sort_type=score" + \
         f"&after={time}" + \
-        r"&sort=desc" + \
-        f"&size={size}"
+        r"&sort=desc"
+        # f"&size={size}" #For now, don't set a max size, allow all
 
     if subreddits == []:
         subreddits = ["CryptoMoonshots", "CryptoMarsShots", "AllCryptoBets", "Cryptostreetbets",
-                  "cryptomooncalls", "Cryptopumping", "SatoshiStreetBets"]
+                        "cryptomooncalls", "Cryptopumping", "SatoshiStreetBets", "CryptoMars", 
+                        "SatoshiBets", "CryptoMarkets","Cryptopumping","Moonshotcrypto", "AltStreetBets",
+                        "CryptoCurrencyTrading","shitcoinmoonshots","MarsWallStreet", "CryptoMoon", "BSCMoonShots"]
 
     all_posts = []
     # SEARCH Loop - Query for new posts
@@ -166,9 +169,13 @@ def scrape_subreddits(time="120s", size=5, verbose=False, subreddits=[]):
         # Iterate each post
         removed = []
         for post in range(len(df)):
+            if not "selftext" in df.columns:
+                removed.append(post)
+                continue
+
             selftext = str(df["selftext"].iloc[post])
             # Skip removed posts
-            if "removed" in selftext:
+            if "[removed]" == selftext:
                 removed.append(post)
                 continue
 
@@ -219,7 +226,3 @@ def track_asset(asset_id, resolution=60):
     while True:
         print(get_post_comments(asset_id))
         sleep(60)
-
-
-df = scrape_subreddits(verbose=True)
-print(df)

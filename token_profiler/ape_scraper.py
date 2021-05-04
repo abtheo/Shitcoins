@@ -14,10 +14,11 @@ import pandas as pd
 
 
 class ApeScraper:
-    def __init__(self):
+    def __init__(self, wait_for_table_load_now=True):
         self.chrome_options = ChromeOptions()
         self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--window-size=1920x1080")
+        self.chrome_options.add_argument("--log-level=3")
 
         # Use the chrome driver in the same directory as this file, regardless
         # of what the current working directory is.
@@ -43,8 +44,9 @@ class ApeScraper:
                 EC.presence_of_element_located((By.CLASS_NAME, 'table-responsive')))
         except TimeoutException:
             print("Loading took too much time!")
-        print("Waiting for Poocoin Ape table to catch up...")
-        sleep(15)
+        if wait_for_table_load_now:
+            print("Waiting for Poocoin Ape table to catch up...")
+            sleep(15)
 
     """Dispose of the driver window correctly when code exits"""
     def __enter__(self):

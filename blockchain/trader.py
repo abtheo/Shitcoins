@@ -186,12 +186,12 @@ class Trader:
 
         return txn_receipt
 
-    def get_shitcoin_price_in_bnb(self, shitcoinAddress, convertToBNB=True):
+    def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1, convertToBNB=True):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(shitcoinAddress)
         # Find the expected output amount of the destination token
         amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [fromToken, self.bnb_address]).call()
+            Web3.ToWei(bnb_value, 'ether'), [fromToken, self.bnb_address]).call()
 
         if convertToBNB:
             return Web3.fromWei(amountsOut, 'ether')

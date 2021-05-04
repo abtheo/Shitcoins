@@ -1,4 +1,4 @@
-# import token_profiler.reddit_scraper as reddit_scraper
+import token_profiler.reddit_scraper as reddit_scraper
 from token_profiler.profiler import Profiler
 from token_profiler.ape_scraper import ApeScraper
 from blockchain.trader import Trader
@@ -6,6 +6,7 @@ import pandas as pd
 import threading
 from datetime import datetime, timedelta
 import time
+import sys
 # Step 4 - do some logic to figure out how much to buy, choose trading strategy
 # Step 6 - Use trader.py to buy/sell
 
@@ -100,15 +101,18 @@ class Shitcoin(threading.Thread):
 
     def run(self):
         print(self.profile)
+        #Ensure Locked Liquidity >= BNB
+        if self.profile["locked_liquidity"] < 1.5:
+            return
         #Ensure at least one Sell transaction has happened
         if not self.profile["sell_exists"]:
             return
         #Less than X hours old
-        if (self.dateSeen - self.earliest_tx) > timedelta(hours=3):
+        if (self.dateSeen - self.earliest_tx) > timedelta(hours=4):
             return
-        #Locked Liquidity >= BNB
-
-        self.earlyEntryStrategy()
+        
+        print("MOONSHOT")
+        # self.earlyEntryStrategy()
 
 
 # Class for overseeing the trading of shitcoins, and
@@ -117,12 +121,13 @@ class Tracker:
         self.trader = Trader()
         self.tokenProfiler = Profiler()
         self.tokenDict = {}
-        self.ape_scraper = ApeScraper()
+        # self.ape_scraper = ApeScraper()
 
-    def track(self, refresh_rate=60*5, trading_mode=True):
+    def track(self, refresh_rate=120, trading_mode=True):
         while(True):
-            # redditTokens = reddit_scraper.scrape_subreddits(time=f"{refresh_rate}s")
-            tokens = self.ape_scraper.scrape_ape()
+            print("\nScraping tokens...")
+            tokens = reddit_scraper.scrape_subreddits(time=f"{int(refresh_rate*2)}s")
+            # tokens = self.ape_scraper.scrape_ape()
             try:
                 addresses = [a for a in tokens["address"] if a != '']
             except:
@@ -141,12 +146,12 @@ class Tracker:
                         self.tokenDict[a] = Shitcoin(a, profile, 0.1, self.trader)
                         self.tokenDict[a].run()
 
-            time.sleep(refresh_rate)
+            print(f"Sleeping for {refresh_rate}...")
+            for i in reversed(range(1, refresh_rate)):
+                time.sleep(1 - time.time() % 1) # sleep until a whole second boundary
+                sys.stderr.write('\r%4d' % i)
+            sys.stderr.write('')
 
-        #print("Profiling MoonCunt:")
-        #print(self.tokenProfiler.profile_token('0x5bf5a3c97dd86064a6b97432b04ddb5ffcf98331'))
 
 t = Tracker()
 t.track(trading_mode = True)
-
-#print(reddit_scraper.scrape_subreddits(time='11000s', subreddits=['cryptomoonshots']))
