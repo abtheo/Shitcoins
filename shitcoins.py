@@ -121,22 +121,23 @@ class Tracker:
         self.trader = Trader()
         self.tokenProfiler = Profiler()
         self.tokenDict = {}
-        # self.ape_scraper = ApeScraper()
+        self.ape_scraper = ApeScraper(wait_for_table_load_now=False)
 
-    def track(self, refresh_rate=120, trading_mode=True):
+    def track(self, refresh_rate=260, trading_mode=True):
         while(True):
             print("\nScraping tokens...")
             tokens = reddit_scraper.scrape_subreddits(time=f"{int(refresh_rate*2)}s")
-            # tokens = self.ape_scraper.scrape_ape()
+            tokens += self.ape_scraper.scrape_ape()
             try:
                 addresses = [a for a in tokens["address"] if a != '']
             except:
                 addresses = []
             #Start with oldest token and work towards future
             for a in addresses[::-1]:
+                a = str(a)
                 if a not in self.tokenDict.keys():
                     print("============================================")
-                    print("New Token Discovered: " + a)
+                    print("New Token Discovered: ", a)
                     print("Time: " + str(datetime.now()))
 
                     if (trading_mode):

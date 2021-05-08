@@ -10,13 +10,17 @@ blockchain/chainlink-mix
 *.tfstate
 *.tfstate.*
 terraform/.terraform*
+terraform/terraform.exe
+terraform/cmds.txt
 
 # Crash log files
 crash.log
 
+blockchain/__pycache__
+blockchain/__pycache__/*
 */__pycache__/*
 !**/__pycache__/
-
+*/*/__pycache__/*
 # For security reasons, don't store private key files on GitHub
 *.pem
 *.ppk

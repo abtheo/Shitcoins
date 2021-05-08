@@ -10,7 +10,7 @@ import os
 import re
 from bs4 import BeautifulSoup
 import pandas as pd
-
+from datetime import datetime
 
 class Profiler:
     def __init__(self):
@@ -57,6 +57,14 @@ class Profiler:
                 EC.presence_of_element_located((By.CLASS_NAME, 'px-3')))
         except TimeoutException:
             print("Loading took too much time!")
+            return {
+                "sell_exists": False,
+                "v1_lp_address": "",
+                "v2_lp_address": "",
+                "v1_bnb_holdings": 0,
+                "v2_bnb_holdings": 0,
+                "market_cap": "$0"
+            }
         sleep(1)
 
         #Get links to BSCScan for Liquidity Providers
@@ -110,9 +118,8 @@ class Profiler:
             "age" : datetime.now(),
             "tx_df": pd.DataFrame(),
         }
-
-
         sleep(0.5)
+
         # Extract total number of transactions
         transactions = self.driver.find_element_by_id("totaltxns").text
         num_transactions = int(re.sub("[^0-9]", "", transactions))
@@ -244,11 +251,13 @@ class Profiler:
         #Start by querying Poocoin to get BSCScan LP links
         poocoin_stats = self.query_poocoin(address)
         # TODO: Exit early if no liquidity
-        # if poocoin_stats["v1_bnb_holdings"] < 1 and poocoin_stats["v2_bnb_holdings"] < 1:
-        #     poocoin_stats["locked_liquidity"] = 0
-        #     poocoin_stats["tx_df"] = pd.DataFrame()
+        if poocoin_stats["v1_bnb_holdings"] < 1 and poocoin_stats["v2_bnb_holdings"] < 1:
+            poocoin_stats["locked_liquidity"] = 0
+            poocoin_stats["tx_df"] = pd.DataFrame()
+            poocoin_stats["stats"] = { "age": pd.Timestamp.now()}
+            poocoin_stats["token_sniffer"] = "404"
 
-        #     return poocoin_stats
+            return poocoin_stats
 
         #Query token on BSCScan
         bscscan_stats = self.query_bscscan_token(address)
@@ -262,7 +271,8 @@ class Profiler:
             if "There are no matching entries" == df["Percentage"].iloc[0]:
                 return 0
             #Find real value of liquidty per address (in BNB)
-            df["percent_float"] = df["Percentage"].apply(lambda x: float(x.strip('%'))/100)
+            df["percent_float"] = df["Percentage"].apply(lambda x: float(''.join(i for i in x if i not in '%,'))/100)
+            df = df[df["percent_float"] <= 100]
             df["bnb_value"] = df["percent_float"] * liquidity_value
 
             total_locked = 0
