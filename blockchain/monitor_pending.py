@@ -34,8 +34,8 @@ contractAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
 contract = w3.eth.contract(address=contractAddress, abi=pancakeswap_abi)
 
 block_filter = w3.eth.filter('pending')
-block_filter = contract.events.removeLiquidityETHWithPermit.createFilter(
-    fromBlock='pending')
+# block_filter = contract.events.removeLiquidityETHWithPermit.createFilter(
+#     fromBlock='pending')
 
 for i in range(20):
     pending_tx_hashes = block_filter.get_new_entries()

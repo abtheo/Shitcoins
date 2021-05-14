@@ -16,7 +16,7 @@ import pandas as pd
 class ApeScraper:
     def __init__(self, wait_for_table_load_now=True):
         self.chrome_options = ChromeOptions()
-        self.chrome_options.add_argument("--headless")
+        # self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--window-size=1920x1080")
         self.chrome_options.add_argument("--log-level=3")
 
@@ -31,22 +31,23 @@ class ApeScraper:
         #Go to web page
         self.driver.get("https://poocoin.app/ape")
         
-        max_delay = 10
+        max_delay = 25
 
-        #Select V2 tokens
-        token_type = WebDriverWait(self.driver, max_delay).until(
-                EC.presence_of_element_located((By.XPATH, "//*[@id='root']/div/div/div[2]/label/select")))
-        token_type.send_keys(Keys.DOWN)
-        self.driver.find_element_by_xpath('//*[@id="root"]').click()
+        if wait_for_table_load_now:
+            print("Waiting for Poocoin Ape table to catch up...")
+            sleep(15)
         # token_type.send_keys(Keys.RETURN)
         try:
+            #Select V2 tokens
+            token_type = WebDriverWait(self.driver, max_delay).until(
+                    EC.presence_of_element_located((By.XPATH, "//*[@id='root']/div/div/div[2]/label/select")))
+            token_type.send_keys(Keys.DOWN)
+            self.driver.find_element_by_xpath('//*[@id="root"]').click()
             myElem = WebDriverWait(self.driver, max_delay).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'table-responsive')))
         except TimeoutException:
             print("Loading took too much time!")
-        if wait_for_table_load_now:
-            print("Waiting for Poocoin Ape table to catch up...")
-            sleep(15)
+        
 
     """Dispose of the driver window correctly when code exits"""
     def __enter__(self):

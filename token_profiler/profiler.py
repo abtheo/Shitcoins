@@ -281,8 +281,8 @@ class Profiler:
             if dead_address in df["Address"]:
                 total_locked += sum(df[df["Address"]==dead_address]["bnb_value"])
 
-            contract_addresses = df[df["is_contract_address"]==True]
-            total_locked += sum(contract_addresses["bnb_value"])
+            # contract_addresses = df[df["is_contract_address"]==True]
+            # total_locked += sum(contract_addresses["bnb_value"])
 
             return total_locked
 
