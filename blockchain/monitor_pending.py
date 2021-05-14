@@ -12,29 +12,29 @@ with open(pancakefile) as f:
     pancakeswap_abi = json.load(f)
 
 
-def try_decode_input(tx):
-    try:
-        input_raw = tx["input"]
-        return contract.decode_function_input(input_raw)
-    except:
-        return None
+# def try_decode_input(tx):
+#     try:
+#         input_raw = tx["input"]
+#         return contract.decode_function_input(input_raw)
+#     except:
+#         return None
 
 
-def try_get_tx(tx):
-    try:
-        w3.eth.getTransaction(tx)
-    except:
-        return None
+# def try_get_tx(tx):
+#     try:
+#         w3.eth.getTransaction(tx)
+#     except:
+#         return None
 
-ip = sys.argv[1]
-# Connect to BSC node
 
+# # Connect to BSC node
 w3 = Web3(Web3.WebsocketProvider(
-    'wss://' + ip + ':8546'))
+    'wss://127.0.0.1:8546'))
+# w3 = Web3(Web3.WebsocketProvider(
+#     'wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/'))
 
-
-# Pancakeswap Router Address
-contractAddress = "0x000000000000000000000000000000000000dEaD"
+# # Pancakeswap Router Address
+contractAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
 contract = w3.eth.contract(address=contractAddress, abi=pancakeswap_abi)
 print(contract)
 
@@ -53,45 +53,45 @@ for i in range(20):
                  for tx in transactions]
     print(tx_inputs)
 
-    remove_lp = ["removeLiquidityETHWithPermit" in tx_inputs]
+#     remove_lp = ["removeLiquidityETHWithPermit" in tx_inputs]
 
-    if any(remove_lp):
-        print(tx_inputs)
-        break
+#     if any(remove_lp):
+#         print(tx_inputs)
+#         break
 
-    time.sleep(0.5)
+#     time.sleep(0.5)
 
-# print(transactions)
-# print(tx_inputs)
-# Could fail for transactions which are not yet allocated to a block
-
-
-# print(transactions[0])
-# print(transactions)
-
-# gas = [int(tx["gas"]) for tx in transactions]
-# print(gas)
-# def handle_event(event):
-#     print(event)
-
-#     # transactions = [web3.eth.getTransaction(h) for h in transaction_hashes]
-#     # and whatever
+# # print(transactions)
+# # print(tx_inputs)
+# # Could fail for transactions which are not yet allocated to a block
 
 
-# def log_loop(event_filter, poll_interval):
-#     while True:
-#         for event in event_filter.get_new_entries():
-#             handle_event(event)
-#         time.sleep(poll_interval)
+# # print(transactions[0])
+# # print(transactions)
+
+# # gas = [int(tx["gas"]) for tx in transactions]
+# # print(gas)
+# # def handle_event(event):
+# #     print(event)
+
+# #     # transactions = [web3.eth.getTransaction(h) for h in transaction_hashes]
+# #     # and whatever
 
 
-# def main():
+# # def log_loop(event_filter, poll_interval):
+# #     while True:
+# #         for event in event_filter.get_new_entries():
+# #             handle_event(event)
+# #         time.sleep(poll_interval)
 
-#     block_filter = w3.eth.filter('pending')
-#     worker = Thread(target=log_loop, args=(block_filter, 5), daemon=True)
-#     worker.start()
-#     # .. do some other stuff
+
+# # def main():
+
+# #     block_filter = w3.eth.filter('pending')
+# #     worker = Thread(target=log_loop, args=(block_filter, 5), daemon=True)
+# #     worker.start()
+# #     # .. do some other stuff
 
 
-# if __name__ == '__main__':
-#     main()
+# # if __name__ == '__main__':
+# #     main()

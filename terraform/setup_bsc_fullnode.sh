@@ -2,6 +2,10 @@
 sudo yum install go -y
 sudo yum install git -y
 
+#Install Python deps
+sudo yum install libxslt-devel libxml2-devel python3-devel -y
+
+
 sudo git clone https://github.com/binance-chain/bsc
 # Enter the folder bsc was cloned into
 cd bsc
@@ -19,6 +23,10 @@ sudo unzip -o mainnet.zip
 
 # Write genesis state locally, and start the fullnode
 sudo ./build/bin/geth --datadir node init genesis.json
+<<<<<<< HEAD
 sudo ./build/bin/geth --config ./config.toml --ws --datadir ./node --pprofaddr 0.0.0.0 --metrics --pprof
+=======
+sudo ./build/bin/geth --config ./config.toml --datadir ./node --nousb --ws --cache 24576 --syncmode "fast"
+>>>>>>> a7f9ef3a2b4b791389338cb89f13f166eb33d0f7
 
 sudo echo "Setup successful" > success.txt
