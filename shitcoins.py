@@ -39,13 +39,13 @@ class Shitcoin(threading.Thread):
     # 'Paper' buy
     def buy(self, bnb):
         self.bnb -= bnb
-        self.shitcoin += bnb / self.currentPrice()
+        self.shitcoin += (bnb / self.currentPrice()) * 0.95
         print(self.address + ": Bought " + self.shitcoin + " for " + self.currentPrice())
 
     # 'Paper' sell
     def sell(self, shitcoin):
         self.shitcoin -= shitcoin
-        self.bnb += shitcoin * self.currentPrice()
+        self.bnb += (shitcoin * self.currentPrice()) * 0.95
         print(self.address + ": Sold " + self.shitcoin + " for " + self.currentPrice())
 
     # Returns value between 0 and 1, where 0 is definitely safe and 1 is definitely a rugpull
@@ -80,7 +80,7 @@ class Shitcoin(threading.Thread):
         print("================================")
         entryPrice = self.currentPrice()
         peakPrice = entryPrice
-        targetMultiplier = 2
+        targetMultiplier = 1.5
         lastTarget = entryPrice
         buy(min(0.05, bnb))
 
@@ -110,7 +110,7 @@ class Shitcoin(threading.Thread):
         #Less than X hours old
         if (self.dateSeen - self.earliest_tx) > timedelta(hours=4):
             return
-        
+
         print("MOONSHOT")
         # self.earlyEntryStrategy()
 

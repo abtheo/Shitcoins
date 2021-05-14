@@ -3,8 +3,12 @@ from web3 import Web3
 from threading import Thread
 import time
 import json
+import os
+import sys
 
-with open('./pancakeswap_abi.json') as f:
+filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+pancakefile = filepath + "/pancakeswap_abi.json"
+with open(pancakefile) as f:
     pancakeswap_abi = json.load(f)
 
 
@@ -22,18 +26,22 @@ def try_get_tx(tx):
     except:
         return None
 
-
+ip = sys.argv[1]
 # Connect to BSC node
+
 w3 = Web3(Web3.WebsocketProvider(
-    'wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/'))
+    'wss://' + ip + ':8546'))
+
 
 # Pancakeswap Router Address
-contractAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+contractAddress = "0x000000000000000000000000000000000000dEaD"
 contract = w3.eth.contract(address=contractAddress, abi=pancakeswap_abi)
+print(contract)
 
 block_filter = w3.eth.filter('pending')
 # block_filter = contract.events.removeLiquidityETHWithPermit.createFilter(
 #     fromBlock='pending')
+print (block_filter)
 
 for i in range(20):
     pending_tx_hashes = block_filter.get_new_entries()

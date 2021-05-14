@@ -31,6 +31,15 @@ module "vpc" {
   public_subnets = var.vpc_public_subnets
 }
 
+resource "aws_security_group_rule" "allow_wss" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = module.bsc_node_sg.security_group_id
+}
+
 module "bsc_node_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "4.0.0"
@@ -43,7 +52,7 @@ module "bsc_node_sg" {
   ingress_cidr_blocks = ["0.0.0.0/0"]
   egress_cidr_blocks = ["0.0.0.0/0"]
 
-  ingress_rules = ["ssh-tcp"]
+  ingress_rules = ["all-all"]
   egress_rules = ["all-all"]
 }
 
@@ -62,7 +71,6 @@ module "ec2_instances" {
   version = "2.12.0"
 
   name           = "my-ec2-cluster"
-
   ami                    = "ami-0f42319ae3b1046ac"
   instance_type          = "a1.xlarge"
   vpc_security_group_ids = [module.bsc_node_sg.security_group_id]

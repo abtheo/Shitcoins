@@ -19,6 +19,6 @@ sudo unzip -o mainnet.zip
 
 # Write genesis state locally, and start the fullnode
 sudo ./build/bin/geth --datadir node init genesis.json
-sudo ./build/bin/geth --config ./config.toml --datadir ./node --pprofaddr 0.0.0.0 --metrics --pprof
+sudo ./build/bin/geth --config ./config.toml --ws --datadir ./node --pprofaddr 0.0.0.0 --metrics --pprof
 
 sudo echo "Setup successful" > success.txt
