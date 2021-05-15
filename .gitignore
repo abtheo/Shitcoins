@@ -2,6 +2,10 @@
 blockchain/node_modules
 blockchain/config.json
 blockchain/chainlink-mix
+token_profiler/telegram_config.json
+
+#Telegram session files
+*.session
 
 # Local .terraform directories (created via 'terraform init')
 *.terraform*
