@@ -12,19 +12,6 @@ from telethon.tl.types import (
 PeerChannel
 )
 
-
-
-# some functions to parse json date
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, datetime):
-            return o.isoformat()
-
-        if isinstance(o, bytes):
-            return list(o)
-
-        return json.JSONEncoder.default(self, o)
-
 class Telegram:
     def __init__(self, connect_on_start=True):
         try:
@@ -61,16 +48,15 @@ class Telegram:
         if self.client.is_connected():
             print("Successfully connected!")
 
-    def run_scraper(self):
+    def run_scraper(self, telegram_url):
+        #'with' destroys the client after the code block
         with self.client:
+            #I don't know async lol, this just runs once
             self.client.loop.run_until_complete(self.connect())
-            self.client.loop.run_until_complete(self.scrape_channel())
+            #This contains a loop to poll for messages
+            self.client.loop.run_until_complete(self.scrape_channel(telegram_url))
 
-    async def scrape_channel(self):
-        # me = await self.client.get_me()
-
-        telegram_url = "https://t.me/theforcetrade1"
-
+    async def scrape_channel(self,telegram_url):
         self.channel = await self.client.get_entity(telegram_url)
         offset_id = 0
         limit = 100
@@ -105,4 +91,4 @@ class Telegram:
 
 if __name__ == "__main__":
     bot = Telegram()
-    bot.run_scraper()
+    bot.run_scraper(telegram_url="https://t.me/theforcetrade1")
