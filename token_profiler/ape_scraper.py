@@ -1,6 +1,7 @@
 import time
 from time import sleep
 from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver import ChromeOptions
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,7 +18,13 @@ class ApeScraper:
     def __init__(self, wait_for_table_load_now=True):
         self.chrome_options = ChromeOptions()
         # self.chrome_options.add_argument("--headless")
-        self.chrome_options.add_argument("--window-size=1920x1080")
+        self.chrome_options.add_argument("--enable-javascript")
+
+        self.chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        self.chrome_options.add_experimental_option('useAutomationExtension', False)
+        self.chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        self.chrome_options.add_argument("user-data-dir={}".format(r"C:\Users\GE60 2PE\AppData\Local\Google\Chrome\User Data\Default"))
+        # self.chrome_options.add_argument("--window-size=1920x1080")
         self.chrome_options.add_argument("--log-level=3")
 
         # Use the chrome driver in the same directory as this file, regardless
@@ -25,8 +32,8 @@ class ApeScraper:
         filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         self.chrome_driver = filepath + "/chromedriver_win.exe"
 
-        self.driver = webdriver.Chrome(options=self.chrome_options,
-                                executable_path=self.chrome_driver)
+        self.driver = uc.Chrome(options=self.chrome_options)#executable_path=self.chrome_driver
+
 
         #Go to web page
         self.driver.get("https://poocoin.app/ape")
@@ -81,10 +88,10 @@ class ApeScraper:
         df.drop_duplicates("Token", keep=False)
         return df
 
-# if __name__ == "__main__":
-#     ape_scraper = ApeScraper()
-#     while True:
-#         df = ape_scraper.scrape_ape()
-#         print(df)
-#         #Poocoin table goes back about an hour, but we need to query constantly
-#         sleep(120)
+if __name__ == "__main__":
+    ape_scraper = ApeScraper()
+    while True:
+        df = ape_scraper.scrape_ape()
+        print(df)
+        #Poocoin table goes back about an hour, but we need to query constantly
+        sleep(120)
