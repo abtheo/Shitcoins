@@ -71,6 +71,28 @@ class Shitcoin(threading.Thread):
         # TODO: LP distribution
         # LP distirbution
 
+    # This trading strategy is applied to coins that are being targeted by a
+    # 'pump-and-dump' campaign. It buys in, and only sells out when there is
+    # indication that the price is beginning to fall.
+    def pumpDumpStrategy(self, amount):
+        entryPrice = self.currentPrice()
+        peakPrice = entryPrice
+        lastTarget = entryPrice
+        buy(min(amount, bnb)) # TODO
+
+        while (True):
+            price = self.currentPrice()
+            peakPrice = max(price, peakPrice)
+
+            # If it drops 20% from the all-time high, sell all.
+            # This could potentially be optimised - e.g. factoring in the number
+            # of sell orders or whether a dip is being quickly eaten up.
+            if (price < 0.8 * peakPrice):
+                sell(self.shitcoin)
+                return
+
+            time.sleep(0.2)
+
     def earlyEntryStrategy(self):
         if self.rugcheck() < 0.5:
             print("Rugpull...")
@@ -99,7 +121,7 @@ class Shitcoin(threading.Thread):
                 lastTarget = lastTarget * targetMultiplier
             time.sleep(2)
 
-    def run(self):
+    def run(self, type):
         print(self.profile)
         #Ensure Locked Liquidity >= BNB
         if self.profile["locked_liquidity"] < 1.5:

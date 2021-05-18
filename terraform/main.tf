@@ -66,17 +66,28 @@ resource "aws_s3_bucket" "state_bucket" {
   acl    = "private"
 }
 
+resource "aws_ebs_volume" "bsc_disk" {
+  availability_zone = module.vpc.azs[0]
+  size = 320
+  snapshot_id = "snap-0699cdda04ba79e75"
+}
+
 module "ec2_instances" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "2.12.0"
 
-  name           = "my-ec2-cluster"
-  ami                    = "ami-0f42319ae3b1046ac"
-  instance_type          = "a1.xlarge"
+  name           = "bsc-node"
+  ami                    = "ami-0cf6f5c8a62fa5da6"
+  instance_type          = "m5n.large"
   vpc_security_group_ids = [module.bsc_node_sg.security_group_id]
   subnet_id              = module.vpc.public_subnets[0]
   key_name               = aws_key_pair.node_ssh_key.key_name
 
-  //user_data = templatefile(.node_setup.rendered)
-  user_data = "${file("setup_bsc_fullnode.sh")}"
+  user_data = "${file("restore_fullnode.sh")}"
+}
+
+resource "aws_volume_attachment" "node_vol_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.bsc_disk.id
+  instance_id = module.ec2_instances.id[0]
 }
