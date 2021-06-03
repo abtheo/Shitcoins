@@ -5,7 +5,7 @@ import os
 import json
 import asyncio
 
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.errors import SessionPasswordNeededError
 from telethon.tl.functions.messages import (GetHistoryRequest)
 from telethon.tl.types import (
@@ -47,6 +47,15 @@ class Telegram:
         
         if self.client.is_connected():
             print("Successfully connected!")
+
+    def listen_for_messages(self, telegram_url):
+        with self.client:
+            @self.client.on(events.NewMessage(chats=telegram_url))
+            async def my_event_handler(event):
+                print(event.raw_text)
+            self.client.loop.run_until_complete(self.connect())
+            self.client.run_until_disconnected()
+        
 
     def run_scraper(self, telegram_url):
         #'with' destroys the client after the code block
@@ -91,4 +100,4 @@ class Telegram:
 
 if __name__ == "__main__":
     bot = Telegram()
-    bot.run_scraper(telegram_url="https://t.me/theforcetrade1")
+    bot.listen_for_messages(telegram_url="https://t.me/testchannelignoreme")
