@@ -70,6 +70,9 @@ resource "aws_ebs_volume" "bsc_disk" {
   availability_zone = module.vpc.azs[0]
   size = 320
   snapshot_id = "snap-0699cdda04ba79e75"
+  type = "gp3"
+  throughput = "1000"
+  iops = "16000"
 }
 
 module "ec2_instances" {
@@ -78,7 +81,7 @@ module "ec2_instances" {
 
   name           = "bsc-node"
   ami                    = "ami-0cf6f5c8a62fa5da6"
-  instance_type          = "m5n.large"
+  instance_type          = "m5.xlarge"
   vpc_security_group_ids = [module.bsc_node_sg.security_group_id]
   subnet_id              = module.vpc.public_subnets[0]
   key_name               = aws_key_pair.node_ssh_key.key_name

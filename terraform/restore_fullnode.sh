@@ -25,7 +25,7 @@ sudo unzip -o mainnet.zip
 
 # Fix bug that stops geth from working
 sudo sed -i 's/WSModules = ["net", "web3", "eth"]/WSModules = ["net", "txpool", "web3", "eth"]/g' config.toml
-sudo sed -i 's/GraphQLPort = 8557/#GraphQLPort = 8557/g' config.toml
+sudo sed -i 's/GraphQLPort = 8557/# GraphQLPort = 8557/g' config.toml
 
 # start the fullnode
 sudo ./build/bin/geth --config ./config.toml --datadir /mnt/ebs/bsc/node --nousb --ws --syncmode "fast"

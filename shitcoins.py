@@ -31,7 +31,7 @@ class Shitcoin(threading.Thread):
         self.token_sniffer = profile['token_sniffer']
 
     def currentPrice(self):
-        return self.trader.get_shitcoin_price_in_bnb(self.address)
+        return self.trader.get_shitcoin_price_in_bnb(self.address) # TODO transaction fee
 
     def printBalance(self):
         print(self.address + ": You have " + self.bnb + " BNB and " + self.shitcoin + " tokens.")
