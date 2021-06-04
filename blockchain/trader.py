@@ -170,49 +170,12 @@ class Trader:
         # swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)
         swap_abi = self.pancake_contract.encodeABI('swapExactTokensForETH',
                                                    args=[int(transferAmount), int(amountOutMin), [fromToken, self.bnb_address], self.account.address, int(deadline)])
-
-        # Fill in ABI & remaining transaction details
-        
-
         """
         <DANGER -- ACTUALLY EXECUTE THE SWAP>
         """
         if actually_send_trade:
-            #Approve shitcoin trade
-            max_approval_hex = f"0x{64 * 'f'}"
-            max_approval_int = int(max_approval_hex, 16)
-
-            token_contract = self.w3.eth.contract(
-                address=fromToken, abi=self.erc20_abi)
-
-            approve_function = token_contract.functions.approve(self.pancakeswapAddress, max_approval_int)
-
-            approveTransaction = {
-                "from": self.account.address,
-                "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
-                "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
-                "gas": Web3.toHex(self.gasLimit),
-                "chainId": self.chainId
-            }
-            
-            approvalTx = approve_function.buildTransaction(approveTransaction)
-
-            signedApprovalTx = self.w3.eth.account.sign_transaction(
-                approvalTx, self.config["PRIVATE_KEY"])
-
-            
-            approved = False
             for i in range(retries):
                 try:   
-                    if not approved:
-                        approval_tx = self.w3.eth.send_raw_transaction(
-                            signedApprovalTx.rawTransaction)
-                        approval_txn_receipt = self.w3.eth.wait_for_transaction_receipt(approval_tx,timeout=240)
-
-                        if verbose:
-                            print(approval_txn_receipt)
-                    approved = True
-
                     rawTransaction = {
                         "from": self.account.address,
                         "to": self.pancakeswapAddress,
@@ -236,7 +199,6 @@ class Trader:
                     txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn,timeout=240)
                     if verbose:
                         print(txn_receipt)
-                    
                     return txn_receipt
 
                 except Exception as e:
@@ -247,6 +209,48 @@ class Trader:
         """
 
         return "Failed"
+
+    def approve_token(self, token_address, gasPriceGwei=8, retries=5):
+        fromToken = Web3.toChecksumAddress(token_address)
+        max_approval_hex = f"0x{64 * 'f'}"
+        max_approval_int = int(max_approval_hex, 16)
+
+        token_contract = self.w3.eth.contract(
+            address=token_address, abi=self.erc20_abi)
+
+        approve_function = token_contract.functions.approve(self.pancakeswapAddress, max_approval_int)
+
+        approval_txn_receipt = "Failed"
+        for i in range(retries):
+            try:   
+                approveTransaction = {
+                    "from": self.account.address,
+                    "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                    "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                    "gas": Web3.toHex(self.gasLimit),
+                    "chainId": self.chainId
+                }
+                approvalTx = approve_function.buildTransaction(approveTransaction)
+
+                signedApprovalTx = self.w3.eth.account.sign_transaction(
+                    approvalTx, self.config["PRIVATE_KEY"])
+
+                approval_tx = self.w3.eth.send_raw_transaction(
+                    signedApprovalTx.rawTransaction)
+                approval_txn_receipt = self.w3.eth.wait_for_transaction_receipt(approval_tx,timeout=240)
+
+                print(approval_txn_receipt)
+
+            except Exception as e:
+                print(e)
+                print(f"Failed on attempt {i}/{retries}")
+
+        return approval_txn_receipt
+        
+
+        
+
+            
 
     def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1, convertToBNB=True):
         # Ensure address is properly formatted

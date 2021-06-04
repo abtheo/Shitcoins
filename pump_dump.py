@@ -21,9 +21,13 @@ buy_tx = trader.swapExactETHForTokens(token_address,
                             actually_send_trade=True)
 assert(not buy_tx == "Failed")
 
+#Approve the reverse swap
+trader.approve_token(token_address)
+
+
 #Monitor price with trailing stop loss
 price = trader.get_shitcoin_price_in_bnb(token_address)
-sl_ratio = decimal.Decimal(0.75)
+sl_ratio = decimal.Decimal(0.95)
 stop_loss = price * sl_ratio
 
 while True:
