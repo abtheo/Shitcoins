@@ -112,7 +112,3 @@ class Telegram:
         
         with open('channel_messages.json', 'w') as outfile:
             json.dump(all_messages, outfile, indent=4, sort_keys=True, default=str)
-
-if __name__ == "__main__":
-    bot = Telegram()
-    bot.listen_for_messages(telegram_url="https://t.me/cryptobnbpumps")

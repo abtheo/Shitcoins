@@ -5,7 +5,7 @@ import datetime
 from time import sleep
 import os
 import numpy as np
-
+import traceback
 class Trader:
     def __init__(self):
         # Load config files
@@ -50,19 +50,14 @@ class Trader:
         self.bnb_address = Web3.toChecksumAddress(
             "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
 
-        self.gasLimit = 250000
+        self.gasLimit = 5000000
 
     def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, retries=1, verbose=False):
         # Convert BNB to BNB-Wei
         transferAmount = Web3.toWei(transferAmountInBNB, "ether")
         # Ensure address is properly formatted
         toToken = Web3.toChecksumAddress(toTokenAddress)
-
-        # Determine the nonce
-        count = self.w3.eth.getTransactionCount(self.account.address)
-        if verbose:
-            print("Nonce: ", count)
-
+        
         # Get BNB balance
         balance = self.w3.eth.getBalance(self.account.address)
         if verbose:
@@ -74,8 +69,8 @@ class Trader:
                 "Requested swap value is greater than the account balance. Will not execute this trade.")
 
         # Find the expected output amount of the destination token
-        amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [self.bnb_address, toToken]).call()
+        # amountsOut = self.pancake_contract.functions.getAmountsOut(
+        #     transferAmount, [self.bnb_address, toToken]).call()
         # amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
         amountOutMin = 1
 
@@ -88,36 +83,37 @@ class Trader:
         swap_abi = self.pancake_contract.encodeABI('swapExactETHForTokens',
                                                    args=[int(amountOutMin), [self.bnb_address, toToken], self.account.address, int(deadline)])
 
-        # Fill in ABI & remaining transaction details
-        rawTransaction = {
-            "from": self.account.address,
-            "to": self.pancakeswapAddress,
-            "nonce": Web3.toHex(count),
-            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
-            "gas": Web3.toHex(self.gasLimit),
-            "data": swap_abi,
-            "chainId": self.chainId,
-            "value": Web3.toHex(transferAmount)
-        }
-
-        if verbose:
-            print(
-                f"Raw of Transaction: \n${rawTransaction}\n------------------------")
-
-        signedTx = self.w3.eth.account.sign_transaction(
-            rawTransaction, self.config["PRIVATE_KEY"])
-
         """
         <DANGER -- ACTUALLY EXECUTE THE SWAP>
         """
         if actually_send_trade:
             for i in range(retries):
                 try:
+                    # Fill in ABI & remaining transaction details
+                    rawTransaction = {
+                        "from": self.account.address,
+                        "to": self.pancakeswapAddress,
+                        "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                        "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                        "gas": Web3.toHex(self.gasLimit),
+                        "data": swap_abi,
+                        "chainId": self.chainId,
+                        "value": Web3.toHex(transferAmount)
+                    }
+
+                    if verbose:
+                        print(
+                            f"Raw of Transaction: \n${rawTransaction}\n------------------------")
+
+                    signedTx = self.w3.eth.account.sign_transaction(
+                    rawTransaction, self.config["PRIVATE_KEY"])
+
                     deploy_txn = self.w3.eth.send_raw_transaction(
                         signedTx.rawTransaction)
-                    txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn)
+                        
+                    txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn,timeout=240)
                     if verbose:
-                        print(txn_receipt)
+                        print("TXN Receipt:\n", txn_receipt)
                     
                     #Check status of txn_receipt
                     if not txn_receipt["status"] == 1:
@@ -126,6 +122,7 @@ class Trader:
                     return txn_receipt
 
                 except Exception as e:
+                    traceback.print_exc()
                     print(e)
                     print(f"Failed on attempt {i+1}/{retries}")
                     sleep(0.5)
@@ -157,8 +154,8 @@ class Trader:
                 "Requested swap value is greater than the account balance. Will not execute this trade.")
 
         # Find the expected output amount of the destination token
-        amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [fromToken, self.bnb_address]).call()
+        # amountsOut = self.pancake_contract.functions.getAmountsOut(
+        #     transferAmount, [fromToken, self.bnb_address]).call()
         # amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
         amountOutMin = 1
         if verbose:
@@ -173,22 +170,38 @@ class Trader:
         # swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)
         swap_abi = self.pancake_contract.encodeABI('swapExactTokensForETH',
                                                    args=[int(transferAmount), int(amountOutMin), [fromToken, self.bnb_address], self.account.address, int(deadline)])
+       
+        swap_abi_transfer_fee = self.pancake_contract.encodeABI('swapExactTokensForETHSupportingFeeOnTransferTokens',
+                                                   args=[int(transferAmount), int(amountOutMin), [fromToken, self.bnb_address], self.account.address, int(deadline)])
+         
         """
         <DANGER -- ACTUALLY EXECUTE THE SWAP>
         """
         if actually_send_trade:
             for i in range(retries):
                 try:   
-                    rawTransaction = {
-                        "from": self.account.address,
-                        "to": self.pancakeswapAddress,
-                        "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
-                        "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
-                        "gas": Web3.toHex(self.gasLimit),
-                        "data": swap_abi,
-                        "chainId": self.chainId,
-                        "value": "0x0"
-                    }
+                    if i % 2:
+                        rawTransaction = {
+                            "from": self.account.address,
+                            "to": self.pancakeswapAddress,
+                            "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                            "gas": Web3.toHex(self.gasLimit),
+                            "data": swap_abi,
+                            "chainId": self.chainId,
+                            "value": "0x0"
+                        }
+                    else:
+                        rawTransaction = {
+                            "from": self.account.address,
+                            "to": self.pancakeswapAddress,
+                            "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                            "gas": Web3.toHex(self.gasLimit),
+                            "data": swap_abi_transfer_fee,
+                            "chainId": self.chainId,
+                            "value": "0x0"
+                        }
 
                     if verbose:
                         print(
@@ -209,8 +222,10 @@ class Trader:
                     return txn_receipt
 
                 except Exception as e:
+                    traceback.print_exc()
                     print(e)
                     print(f"Failed on attempt {i+1}/{retries}")
+                    sleep(3)
             """
             </DANGER>
         """
@@ -253,8 +268,10 @@ class Trader:
                 return approval_txn_receipt
 
             except Exception as e:
+                traceback.print_exc()
                 print(e)
                 print(f"Failed on attempt {i+1}/{retries}")
+                sleep(0.5)
 
         return "Failed"
         
