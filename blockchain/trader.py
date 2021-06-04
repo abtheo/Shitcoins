@@ -49,7 +49,8 @@ class Trader:
 
         self.bnb_address = Web3.toChecksumAddress(
             "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
-        self.gasLimit = 5000000
+
+        self.gasLimit = 250000
 
     def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, retries=1, verbose=False):
         # Convert BNB to BNB-Wei
@@ -119,13 +120,15 @@ class Trader:
                         print(txn_receipt)
                     
                     #Check status of txn_receipt
-                    
-                    
+                    if not txn_receipt["status"] == 1:
+                        raise Exception("Transaction failed on the blockchain")
+
                     return txn_receipt
 
                 except Exception as e:
                     print(e)
-                    print(f"Failed on attempt {i}/{retries}")
+                    print(f"Failed on attempt {i+1}/{retries}")
+                    sleep(0.5)
         """
             </DANGER>
         """
@@ -199,11 +202,15 @@ class Trader:
                     txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn,timeout=240)
                     if verbose:
                         print(txn_receipt)
+                        
+                    if not txn_receipt["status"] == 1:
+                        raise Exception("Transaction failed on the blockchain")
+                        
                     return txn_receipt
 
                 except Exception as e:
                     print(e)
-                    print(f"Failed on attempt {i}/{retries}")
+                    print(f"Failed on attempt {i+1}/{retries}")
             """
             </DANGER>
         """
@@ -216,7 +223,7 @@ class Trader:
         max_approval_int = int(max_approval_hex, 16)
 
         token_contract = self.w3.eth.contract(
-            address=token_address, abi=self.erc20_abi)
+            address=fromToken, abi=self.erc20_abi)
 
         approve_function = token_contract.functions.approve(self.pancakeswapAddress, max_approval_int)
 
@@ -240,18 +247,17 @@ class Trader:
                 approval_txn_receipt = self.w3.eth.wait_for_transaction_receipt(approval_tx,timeout=240)
 
                 print(approval_txn_receipt)
+                if not approval_txn_receipt["status"] == 1:
+                    raise Exception("Transaction failed on the blockchain")
+
+                return approval_txn_receipt
 
             except Exception as e:
                 print(e)
-                print(f"Failed on attempt {i}/{retries}")
+                print(f"Failed on attempt {i+1}/{retries}")
 
-        return approval_txn_receipt
+        return "Failed"
         
-
-        
-
-            
-
     def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1, convertToBNB=True):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(shitcoinAddress)
@@ -276,8 +282,8 @@ class Trader:
         balance_check_contract = self.w3.eth.contract(
             address=fromToken, abi=self.balance_check_abi)
 
-        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
-        
+        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})   
+
         if convertToBNB:
             return Web3.fromWei(balance, 'ether')
         return balance
