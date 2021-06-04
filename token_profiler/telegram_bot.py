@@ -11,9 +11,12 @@ from telethon.tl.functions.messages import (GetHistoryRequest)
 from telethon.tl.types import (
 PeerChannel
 )
+import re
+
 
 class Telegram:
-    def __init__(self, connect_on_start=True):
+    def __init__(self, connect_on_start=False):
+        self.latest_token = ""
         try:
             # Load config file
             filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -50,12 +53,24 @@ class Telegram:
 
     def listen_for_messages(self, telegram_url):
         with self.client:
+            #Initialise event listener for given channel
             @self.client.on(events.NewMessage(chats=telegram_url))
             async def my_event_handler(event):
                 print(event.raw_text)
+                
+                contractPattern = re.compile(r'0x[\da-f]{40}', flags=re.IGNORECASE)
+                token_addresses = contractPattern.findall(event.raw_text)
+                if len(token_addresses) > 0:
+                    self.latest_token = token_addresses[0]
+                    #End async polling loop
+                    await self.client.disconnect()
+                    raise Exception("Client disconnect")
+
+            #Connect client and run event listener
             self.client.loop.run_until_complete(self.connect())
             self.client.run_until_disconnected()
-        
+        return self.latest_token
+    
 
     def run_scraper(self, telegram_url):
         #'with' destroys the client after the code block
@@ -100,4 +115,4 @@ class Telegram:
 
 if __name__ == "__main__":
     bot = Telegram()
-    bot.listen_for_messages(telegram_url="https://t.me/testchannelignoreme")
+    bot.listen_for_messages(telegram_url="https://t.me/cryptobnbpumps")
