@@ -4,29 +4,42 @@ import json
 import datetime
 from time import sleep
 import os
-
+import numpy as np
+import traceback
 class Trader:
     def __init__(self):
         # Load config files
         filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         configFile = filepath + "/config.json"
         pancakeABI = filepath + "/pancakeswap_abi.json"
+        erc20ABI = filepath + "/erc20.json"
+        factoryABI = filepath + "/factory.json"
 
         with open(configFile) as f:
             self.config = json.load(f)
         with open(pancakeABI) as f:
             self.pancakeswap_abi = json.load(f)
-        
+        with open(erc20ABI) as f:
+            self.erc20_abi = json.load(f)
+        with open(factoryABI) as f:
+            self.factory_abi = json.load(f)
+
         self.balance_check_abi = json.loads('[{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"}]')
 
         # Connect to BSC node
         self.w3 = Web3(Web3.WebsocketProvider(
-            'wss://silent-old-pine.bsc.quiknode.pro/50d141387da957f5bd76a5018ec2fd33a7c48dfe/'))
+            'wss://silent-old-pine.bsc.quiknode.pro/'))
 
-        # Pancakeswap Router Address
+        # Pancakeswap Router Contract
         self.pancakeswapAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
         self.pancake_contract = self.w3.eth.contract(
             address=self.pancakeswapAddress, abi=self.pancakeswap_abi)
+
+        #Pancakeswap Factory Contract
+        self.factory_contract = self.w3.eth.contract(
+            address="0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+            abi=self.factory_abi
+        )
 
         # Read wallet private key
         self.account = Account.from_key(self.config["PRIVATE_KEY"])
@@ -36,19 +49,15 @@ class Trader:
 
         self.bnb_address = Web3.toChecksumAddress(
             "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
-        self.gasLimit = 4000000
 
-    def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, verbose=False):
+        self.gasLimit = 5000000
+
+    def swapExactETHForTokens(self, toTokenAddress, transferAmountInBNB, gasPriceGwei=8, max_slippage=5, minutesDeadline=5, actually_send_trade=False, retries=1, verbose=False):
         # Convert BNB to BNB-Wei
         transferAmount = Web3.toWei(transferAmountInBNB, "ether")
         # Ensure address is properly formatted
         toToken = Web3.toChecksumAddress(toTokenAddress)
-
-        # Determine the nonce
-        count = self.w3.eth.getTransactionCount(self.account.address)
-        if verbose:
-            print("Nonce: ", count)
-
+        
         # Get BNB balance
         balance = self.w3.eth.getBalance(self.account.address)
         if verbose:
@@ -60,9 +69,10 @@ class Trader:
                 "Requested swap value is greater than the account balance. Will not execute this trade.")
 
         # Find the expected output amount of the destination token
-        amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [self.bnb_address, toToken]).call()
-        amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
+        # amountsOut = self.pancake_contract.functions.getAmountsOut(
+        #     transferAmount, [self.bnb_address, toToken]).call()
+        # amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
+        amountOutMin = 1
 
         # Arbitrary deadline, can tighten to reject txs if we fail to front-run?
         deadline = datetime.datetime.now(
@@ -73,49 +83,58 @@ class Trader:
         swap_abi = self.pancake_contract.encodeABI('swapExactETHForTokens',
                                                    args=[int(amountOutMin), [self.bnb_address, toToken], self.account.address, int(deadline)])
 
-        # Fill in ABI & remaining transaction details
-        rawTransaction = {
-            "from": self.account.address,
-            "to": self.pancakeswapAddress,
-            "nonce": Web3.toHex(count),
-            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
-            "gas": Web3.toHex(self.gasLimit),
-            "data": swap_abi,
-            "chainId": self.chainId,
-            "value": Web3.toHex(transferAmount)
-        }
-
-        if verbose:
-            print(
-                f"Raw of Transaction: \n${rawTransaction}\n------------------------")
-
-        signedTx = self.w3.eth.account.sign_transaction(
-            rawTransaction, self.config["PRIVATE_KEY"])
-
-        txn_receipt = "NotExecuted"
         """
         <DANGER -- ACTUALLY EXECUTE THE SWAP>
         """
         if actually_send_trade:
-            deploy_txn = self.w3.eth.send_raw_transaction(
-                signedTx.rawTransaction)
-            txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn)
-            if verbose:
-                print(txn_receipt)
+            for i in range(retries):
+                try:
+                    # Fill in ABI & remaining transaction details
+                    rawTransaction = {
+                        "from": self.account.address,
+                        "to": self.pancakeswapAddress,
+                        "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                        "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                        "gas": Web3.toHex(self.gasLimit),
+                        "data": swap_abi,
+                        "chainId": self.chainId,
+                        "value": Web3.toHex(transferAmount)
+                    }
+
+                    if verbose:
+                        print(
+                            f"Raw of Transaction: \n${rawTransaction}\n------------------------")
+
+                    signedTx = self.w3.eth.account.sign_transaction(
+                    rawTransaction, self.config["PRIVATE_KEY"])
+
+                    deploy_txn = self.w3.eth.send_raw_transaction(
+                        signedTx.rawTransaction)
+                        
+                    txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn,timeout=240)
+                    if verbose:
+                        print("TXN Receipt:\n", txn_receipt)
+                    
+                    #Check status of txn_receipt
+                    if not txn_receipt["status"] == 1:
+                        raise Exception("Transaction failed on the blockchain")
+
+                    return txn_receipt
+
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+                    print(f"Failed on attempt {i+1}/{retries}")
+                    sleep(0.5)
         """
             </DANGER>
         """
 
-        return txn_receipt
+        return "Failed"
 
-    def swapExactTokensForETH(self,fromTokenAddress, gasPriceGwei=8, transferAmountPercentage=1.0, minutesDeadline=5, max_slippage=5, verbose=False,actually_send_trade=False):
+    def swapExactTokensForETH(self,fromTokenAddress, gasPriceGwei=8, transferAmountPercentage=1.0, retries=1, minutesDeadline=5, max_slippage=5, verbose=False,actually_send_trade=False):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(fromTokenAddress)
-
-        # Determine the nonce
-        count = self.w3.eth.getTransactionCount(self.account.address)
-        if verbose:
-            print("Nonce: ", count)
 
         # Get fromToken balance
         balance_check_contract = self.w3.eth.contract(
@@ -128,16 +147,17 @@ class Trader:
                 f"Balance before send: {balance} Wei Shitcoin\n------------------------")
 
         # Determine percentage of position to exit
-        transferAmount = int(transferAmountPercentage * balance)
-
+        # transferAmount = int(np.float64(transferAmountPercentage) * np.int64(balance))
+        transferAmount = balance
         if balance < transferAmount:
             raise Exception(
                 "Requested swap value is greater than the account balance. Will not execute this trade.")
 
         # Find the expected output amount of the destination token
-        amountsOut = self.pancake_contract.functions.getAmountsOut(
-            transferAmount, [fromToken, self.bnb_address]).call()
-        amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
+        # amountsOut = self.pancake_contract.functions.getAmountsOut(
+        #     transferAmount, [fromToken, self.bnb_address]).call()
+        # amountOutMin = amountsOut[1] * (100 - max_slippage) / 100
+        amountOutMin = 1
         if verbose:
             print(
                 f"Minimum amount out: {amountOutMin} Wei BNB\n------------------------")
@@ -150,52 +170,121 @@ class Trader:
         # swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)
         swap_abi = self.pancake_contract.encodeABI('swapExactTokensForETH',
                                                    args=[int(transferAmount), int(amountOutMin), [fromToken, self.bnb_address], self.account.address, int(deadline)])
-
-        # Fill in ABI & remaining transaction details
-        rawTransaction = {
-            "from": self.account.address,
-            "to": self.pancakeswapAddress,
-            "nonce": Web3.toHex(count),
-            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
-            "gas": Web3.toHex(self.gasLimit),
-            "data": swap_abi,
-            "chainId": self.chainId,
-            "value": "0x0"
-        }
-
-        if verbose:
-            print(
-                f"Raw of Transaction: \n${rawTransaction}\n------------------------")
-
-        signedTx = self.w3.eth.account.sign_transaction(
-            rawTransaction, self.config["PRIVATE_KEY"])
-
-        txn_receipt = "NotExecuted"
+       
+        swap_abi_transfer_fee = self.pancake_contract.encodeABI('swapExactTokensForETHSupportingFeeOnTransferTokens',
+                                                   args=[int(transferAmount), int(amountOutMin), [fromToken, self.bnb_address], self.account.address, int(deadline)])
+         
         """
         <DANGER -- ACTUALLY EXECUTE THE SWAP>
         """
         if actually_send_trade:
-            deploy_txn = self.w3.eth.send_raw_transaction(
-                signedTx.rawTransaction)
-            txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn)
-            if verbose:
-                print(txn_receipt)
-        """
+            for i in range(retries):
+                try:   
+                    if i % 2:
+                        rawTransaction = {
+                            "from": self.account.address,
+                            "to": self.pancakeswapAddress,
+                            "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                            "gas": Web3.toHex(self.gasLimit),
+                            "data": swap_abi,
+                            "chainId": self.chainId,
+                            "value": "0x0"
+                        }
+                    else:
+                        rawTransaction = {
+                            "from": self.account.address,
+                            "to": self.pancakeswapAddress,
+                            "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                            "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                            "gas": Web3.toHex(self.gasLimit),
+                            "data": swap_abi_transfer_fee,
+                            "chainId": self.chainId,
+                            "value": "0x0"
+                        }
+
+                    if verbose:
+                        print(
+                            f"Raw of Transaction: \n${rawTransaction}\n------------------------")
+
+                    signedTx = self.w3.eth.account.sign_transaction(
+                        rawTransaction, self.config["PRIVATE_KEY"])
+
+                    deploy_txn = self.w3.eth.send_raw_transaction(
+                        signedTx.rawTransaction)
+                    txn_receipt = self.w3.eth.wait_for_transaction_receipt(deploy_txn,timeout=240)
+                    if verbose:
+                        print(txn_receipt)
+                        
+                    if not txn_receipt["status"] == 1:
+                        raise Exception("Transaction failed on the blockchain")
+                        
+                    return txn_receipt
+
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+                    print(f"Failed on attempt {i+1}/{retries}")
+                    sleep(3)
+            """
             </DANGER>
         """
 
-        return txn_receipt
+        return "Failed"
 
+    def approve_token(self, token_address, gasPriceGwei=8, retries=5):
+        fromToken = Web3.toChecksumAddress(token_address)
+        max_approval_hex = f"0x{64 * 'f'}"
+        max_approval_int = int(max_approval_hex, 16)
+
+        token_contract = self.w3.eth.contract(
+            address=fromToken, abi=self.erc20_abi)
+
+        approve_function = token_contract.functions.approve(self.pancakeswapAddress, max_approval_int)
+
+        approval_txn_receipt = "Failed"
+        for i in range(retries):
+            try:   
+                approveTransaction = {
+                    "from": self.account.address,
+                    "nonce": Web3.toHex(self.w3.eth.getTransactionCount(self.account.address)),
+                    "gasPrice": Web3.toHex(int(gasPriceGwei * 1e9)),
+                    "gas": Web3.toHex(self.gasLimit),
+                    "chainId": self.chainId
+                }
+                approvalTx = approve_function.buildTransaction(approveTransaction)
+
+                signedApprovalTx = self.w3.eth.account.sign_transaction(
+                    approvalTx, self.config["PRIVATE_KEY"])
+
+                approval_tx = self.w3.eth.send_raw_transaction(
+                    signedApprovalTx.rawTransaction)
+                approval_txn_receipt = self.w3.eth.wait_for_transaction_receipt(approval_tx,timeout=240)
+
+                print(approval_txn_receipt)
+                if not approval_txn_receipt["status"] == 1:
+                    raise Exception("Transaction failed on the blockchain")
+
+                return approval_txn_receipt
+
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
+                print(f"Failed on attempt {i+1}/{retries}")
+                sleep(0.5)
+
+        return "Failed"
+        
     def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1, convertToBNB=True):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(shitcoinAddress)
         # Find the expected output amount of the destination token
         amountsOut = self.pancake_contract.functions.getAmountsOut(
-            Web3.ToWei(bnb_value, 'ether'), [fromToken, self.bnb_address]).call()
+            Web3.toWei(bnb_value, 'ether'), [fromToken, self.bnb_address]).call()[1]
 
         if convertToBNB:
-            return Web3.fromWei(amountsOut, 'ether')
-        return amountsOut
+            return np.divide(1,Web3.fromWei(amountsOut, 'ether'))
+        return np.divide(1,amountsOut)
     
     def get_bnb_balance(self,convertToBNB=True):
         balance = self.w3.eth.getBalance(self.account.address)
@@ -210,8 +299,8 @@ class Trader:
         balance_check_contract = self.w3.eth.contract(
             address=fromToken, abi=self.balance_check_abi)
 
-        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})
-        
+        balance = balance_check_contract.functions.balanceOf(self.account.address).call({'from':fromToken})   
+
         if convertToBNB:
             return Web3.fromWei(balance, 'ether')
         return balance
