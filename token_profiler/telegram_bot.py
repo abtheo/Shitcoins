@@ -21,7 +21,6 @@ class Telegram:
             # Load config file
             filepath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
             configFile = filepath + "/telegram_config.json"
-            
             #Parse details from config file
             with open(configFile) as f:
                 self.config = json.load(f)

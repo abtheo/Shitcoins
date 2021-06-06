@@ -274,17 +274,16 @@ class Trader:
                 sleep(0.5)
 
         return "Failed"
-        
-    def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1, convertToBNB=True):
+
+    def get_shitcoin_price_in_bnb(self, shitcoinAddress, bnb_value=1):
         # Ensure address is properly formatted
         fromToken = Web3.toChecksumAddress(shitcoinAddress)
         # Find the expected output amount of the destination token
+        
         amountsOut = self.pancake_contract.functions.getAmountsOut(
             Web3.toWei(bnb_value, 'ether'), [fromToken, self.bnb_address]).call()[1]
 
-        if convertToBNB:
-            return np.divide(1,Web3.fromWei(amountsOut, 'ether'))
-        return np.divide(1,amountsOut)
+        return Web3.fromWei(amountsOut, 'ether')
     
     def get_bnb_balance(self,convertToBNB=True):
         balance = self.w3.eth.getBalance(self.account.address)
